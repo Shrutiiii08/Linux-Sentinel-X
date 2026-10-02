@@ -1,3 +1,4 @@
 build/
 *.o
 logs/
+tests/test_failure
