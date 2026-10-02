@@ -43,6 +43,6 @@ bool ConfigManager::loadConfig(const std::string& filename, Config& config) {
             }
         }
     }
-
+    file.close();
     return true;
 }
