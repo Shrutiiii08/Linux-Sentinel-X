@@ -3,42 +3,41 @@
 
 ### 1. Purpose
 
-Linux-Sentinel-X is a Linux system monitoring and process supervision tool.
+Linux-Sentinel-X is a Linux system monitoring and process supervision tool developed using C++ and Linux system programming concepts.
 
-The application will continuously monitor selected system resources and a configured process. When a defined limit is exceeded or the monitored process stops, the system will detect the problem, record it in a log, and perform a controlled recovery action where applicable.
+The application continuously monitors selected system resources and a configured process. When a defined resource limit is exceeded or the monitored process stops, the system detects the problem, records the event in a log, and performs a controlled recovery action where applicable.
 
-The project will also include a basic Linux character device driver to demonstrate user-space and kernel-space interaction.
+The project focuses on system monitoring, process supervision, failure detection, controlled recovery, configuration management, logging, and safe system operation.
 
 ---
 
 ### 2. Functional Requirements
 
-The system will provide the following functions:
+The system provides the following functions:
 
 **FR-01: System Information**
 
-Collect basic information such as:
-- Hostname
-- Kernel version
+The system can collect basic Linux system information such as:
 - CPU information
 - Memory information
+- Kernel/system information
 
 **FR-02: Resource Monitoring**
 
-Monitor:
+The system monitors:
 - CPU usage
 - Memory usage
 - Disk usage
 
-The monitoring interval will be configurable.
+The monitoring interval can be configured through the configuration file.
 
 **FR-03: Process Monitoring**
 
-Monitor a configured process/service and determine whether it is running.
+The system monitors a configured Linux process and determines whether the process is running.
 
 **FR-04: Failure Detection**
 
-Detect conditions such as:
+The system detects conditions such as:
 - CPU usage above the configured threshold
 - Memory usage above the configured threshold
 - Disk usage above the configured threshold
@@ -46,41 +45,54 @@ Detect conditions such as:
 
 **FR-05: Logging**
 
-Record important events with:
+The system records important events with:
 - Timestamp
-- Event
-- Current value/status
+- Event description
+- Current status
 - Action taken
+
+Examples include process failures, recovery attempts, successful recovery, failed recovery, recovery being blocked, and manual intervention requirements.
 
 **FR-06: Recovery**
 
-When the monitored process stops, attempt to restart it if recovery is enabled in the configuration.
+When the monitored process stops, the system attempts to restart it when automatic recovery is enabled.
 
-**FR-07: Configuration**
+**FR-07: Recovery Limit**
 
-Store monitoring settings in a configuration file, including:
-- Process/service name
+The system limits the number of automatic recovery attempts.
+
+If the configured recovery attempts are unsuccessful, further automatic recovery is blocked and the system reports that manual intervention is required.
+
+**FR-08: Recovery Verification**
+
+After a recovery attempt, the system verifies whether the monitored process has successfully started.
+
+**FR-09: Configuration**
+
+Monitoring settings are stored in a configuration file, including:
+- Process name
 - Monitoring interval
-- Resource thresholds
+- CPU threshold
+- Memory threshold
+- Disk threshold
 - Recovery setting
 
-**FR-08: Character Device Driver**
+**FR-10: Safe Shutdown**
 
-Implement a basic Linux character device driver supporting fundamental operations such as device initialization, open, read, write, and cleanup.
-
-**FR-09: Driver Communication**
-
-Demonstrate basic communication between the user-space application and the character device.
+The application handles termination signals and shuts down the monitoring process safely.
 
 ---
 
 ### 3. Non-Functional Requirements
 
-- The application should run continuously without unnecessary termination.
-- Monitoring should have low CPU and memory overhead.
-- Code should be divided into modules with clear responsibilities.
-- Errors such as invalid configuration, missing processes, and failed file/device operations should be handled.
-- The project should maintain a clear Git history and stage-wise documentation.
+- The application should be capable of running continuously during monitoring.
+- Monitoring should maintain low CPU and memory overhead.
+- The code should be divided into modules with clear responsibilities.
+- Configuration and runtime errors should be handled appropriately.
+- Failed recovery attempts should not result in unlimited restart attempts.
+- Important system and recovery events should be recorded in logs.
+- The project should maintain clear Git history and stage-wise documentation.
+- The application should run in a Linux environment with the required C++ compiler and build tools.
 
 ---
 
@@ -88,14 +100,15 @@ Demonstrate basic communication between the user-space application and the chara
 
 | Module | Purpose |
 |---|---|
-| SystemInfo | Collect Linux system information |
-| ResourceMonitor | Monitor CPU, memory and disk |
-| ProcessMonitor | Check the configured process |
-| FailureDetector | Compare values with thresholds |
-| RecoveryManager | Restart the monitored process || Logger | Record events and actions |
-| ConfigManager | Read project configuration |
-| DeviceDriver | Basic Linux character driver |
-| DriverInterface | User-space communication with driver |
+| `SystemMonitor` | Collect CPU, memory and disk usage |
+| `ProcessMonitor` | Check the configured process |
+| `FailureDetector` | Detect process failures and threshold violations |
+| `RecoveryManager` | Perform and control process recovery |
+| `Logger` | Record system and recovery events |
+| `ConfigManager` | Read monitoring and recovery configuration |
+| `main.cpp` | Coordinate the monitoring workflow |
+
+Each module has a specific responsibility, allowing the project to remain modular, easier to understand, test and maintain.
 
 ---
 
@@ -103,51 +116,97 @@ Demonstrate basic communication between the user-space application and the chara
 
 **Included:**
 - Linux system programming
-- C++ monitoring application
-- CPU, memory and disk monitoring
+- C++ programming
+- CPU monitoring
+- Memory monitoring
+- Disk monitoring
 - Process monitoring
 - Threshold detection
-- Logging
-- Process recovery
+- Process failure detection
+- Controlled process recovery
+- Recovery attempt limits
+- Manual intervention handling
+- Event logging
 - Configuration file
-- Linux character device driver
-- User-space/driver communication
-- Git and GitHub documentation
+- Signal handling
+- CMake build system
+- Git and GitHub version control
+- Stage-wise project documentation
+
+**Not Included:**
+- Graphical user interface
+- Cloud-based monitoring
+- Remote monitoring
+- Database-based monitoring
+- Email/SMS alerting
+- Kernel-level device driver development
+
+The project intentionally focuses on a simple and explainable Linux monitoring and process supervision system.
 
 ---
 
 ### 6. Development Plan
 
-The project will be developed in the following order:
+The project was developed progressively through the following stages:
 
 **Stage 1 – Project Introduction**  
-Project idea, problem, objectives and scope.
+Defined the project idea, problem statement, objectives, scope, expected outcome and application.
 
 **Stage 2 – Requirements & Planning**  
-Functional requirements, modules, scope and development plan.
+Defined functional and non-functional requirements, project modules, scope, deliverables and development plan.
 
 **Stage 3 – System Design**  
-Architecture, module interaction, data flow, data structures and UML diagrams.
+Designed the system architecture, module responsibilities, monitoring workflow, recovery workflow and UML documentation.
 
 **Stage 4 – Implementation**  
-Develop the monitoring application, configuration, logging, process supervision and character driver.
+Implemented system monitoring, process monitoring, configuration handling, failure detection, logging, process recovery and safe shutdown.
 
 **Stage 5 – Testing & Improvement**  
-Test individual modules, integrate them, handle errors and improve reliability.
+Tested normal monitoring, process failure detection, recovery behaviour, recovery failure and manual intervention handling. Identified and fixed implementation issues and improved reliability.
 
 **Stage 6 – Finalization**  
-Complete documentation, testing, results, presentation and GitHub repository.
+Finalize project documentation, testing results, architecture and UML diagrams, GitHub repository, project report and final demonstration.
 
 ---
 
-### 7. Stage 2 Deliverables
+### 7. Acceptance Criteria
+
+The project is considered successfully implemented when:
+
+- The project builds successfully using CMake.
+- CPU, memory and disk usage are monitored.
+- The configured process can be monitored.
+- Process failure is detected correctly.
+- Configured resource thresholds are checked.
+- Automatic recovery can be performed when enabled.
+- Recovery attempts are limited.
+- Recovery success or failure is verified.
+- Manual intervention is reported when automatic recovery is blocked.
+- Important events are recorded in the log file.
+- The application can shut down safely.
+- Source code and documentation are available in the GitHub repository.
+
+---
+
+### 8. Stage 2 Deliverables
 
 At the end of Stage 2:
 
-- Project requirements document
-- Defined modules and responsibilities
+- Project Requirements Document
+- Functional requirements
+- Non-functional requirements
 - Defined project scope
+- Defined project modules and responsibilities
 - Development plan
+- Acceptance criteria
+- Stage 2 documentation
 - Git commit for Stage 2
 - Updated GitHub repository
 
+---
+
+### 9. Stage 2 Outcome
+
+Stage 2 established a clear understanding of what Linux-Sentinel-X should accomplish and how the project would be developed.
+
+The defined requirements and development plan were used as the foundation for the system design, implementation, testing and finalization stages.
