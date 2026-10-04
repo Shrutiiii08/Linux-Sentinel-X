@@ -1,99 +1,146 @@
-# Stage 4 – Implementationx
+# Linux-Sentinel-X
 
-## 1. Objective
+## Stage 4 – Initial Implementation & Prototype
 
-The objective of Stage 4 was to implement the main functional components of Linux Sentinel-X.
+### 1. Objective
 
-The system was developed as a Linux-based system monitoring and recovery application using C++.
+The objective of Stage 4 was to implement the core functionality of Linux-Sentinel-X as a Linux-based system monitoring and process supervision application.
 
-The implementation focuses on:
+The implementation was developed using C++ and Linux system programming concepts.
 
-- System information
+The implementation focused on:
+
+- System information collection
 - CPU monitoring
 - Memory monitoring
 - Disk monitoring
 - Process monitoring
 - Failure detection
-- Automatic recovery
+- Controlled process recovery
+- Recovery attempt limits
+- Recovery verification
 - Event logging
 - Configuration management
+- Safe application shutdown
+- Integration of all modules
+
+The implementation was kept modular so that each component has a clear responsibility and can be tested independently.
 
 ---
 
-## 2. Implemented Components
+## 2. Development Environment
 
-### 2.1 SystemInfo
+The project was developed and tested in a Linux environment using:
 
-File:
+| Component | Technology |
+|---|---|
+| Programming Language | C++ |
+| Operating System | Linux / WSL2 |
+| Compiler | GNU C++ |
+| Build System | CMake |
+| Version Control | Git |
+| Repository | GitHub |
+| Configuration | Markdown / `.conf` |
 
-    include/SystemInfo.h
-    src/SystemInfo.cpp
+The project uses C++17 features and Linux system interfaces for monitoring and process management.
 
-Purpose:
+---
 
-The SystemInfo component collects and displays basic Linux system information.
+## 3. Implemented Components
 
-It displays:
+### 3.1 SystemInfo
+
+**Files:**
+
+```text
+include/SystemInfo.h
+src/SystemInfo.cpp
+```
+
+**Purpose:**
+
+The `SystemInfo` component collects and displays basic information about the Linux system.
+
+It provides information such as:
 
 - Hostname
-- Kernel version
+- Linux kernel version
 - CPU information
 - Memory information
 
+This information helps provide an overview of the environment in which Linux-Sentinel-X is running.
+
 ---
 
-### 2.2 ResourceMonitor
+### 3.2 ResourceMonitor
 
-File:
+**Files:**
 
-    include/ResourceMonitor.h
-    src/ResourceMonitor.cpp
+```text
+include/ResourceMonitor.h
+src/ResourceMonitor.cpp
+```
 
-Purpose:
+**Purpose:**
 
-The ResourceMonitor component monitors system resource usage.
+The `ResourceMonitor` component monitors important system resource usage.
 
-It provides:
+It monitors:
 
 - CPU usage
 - Memory usage
 - Disk usage
 
-The collected values are displayed continuously by the main monitoring program.
+The monitoring values are collected periodically according to the configured monitoring interval.
+
+The collected values are passed to the monitoring workflow for threshold checking.
 
 ---
 
-### 2.3 ProcessMonitor
+### 3.3 ProcessMonitor
 
-File:
+**Files:**
 
-    include/ProcessMonitor.h
-    src/ProcessMonitor.cpp
+```text
+include/ProcessMonitor.h
+src/ProcessMonitor.cpp
+```
 
-Purpose:
+**Purpose:**
 
-The ProcessMonitor component checks whether a configured Linux process is currently running.
+The `ProcessMonitor` component checks whether the configured Linux process is currently running.
 
 The process name is obtained from the configuration file.
 
+The component provides the current process status to the main monitoring workflow.
+
+The possible states include:
+
+- Running
+- Not Running
+
 ---
 
-### 2.4 ConfigManager
+### 3.4 ConfigManager
 
-File:
+**Files:**
 
-    include/ConfigManager.h
-    src/ConfigManager.cpp
+```text
+include/ConfigManager.h
+src/ConfigManager.cpp
+```
 
-Purpose:
+**Configuration file:**
 
-The ConfigManager reads monitoring settings from the configuration file.
+```text
+config/sentinel.conf
+```
 
-Configuration file:
+**Purpose:**
 
-    config/sentinel.conf
+The `ConfigManager` component reads and provides the monitoring configuration used by the application.
 
-The configuration contains:
+The configuration includes:
 
 - Process name
 - Monitoring interval
@@ -102,214 +149,403 @@ The configuration contains:
 - Disk threshold
 - Recovery setting
 
+Example configuration:
+
+```text
+process_name=testprocess
+monitor_interval=5
+cpu_threshold=80
+memory_threshold=80
+disk_threshold=80
+recovery_enabled=true
+```
+
+Using a configuration file allows monitoring behaviour to be changed without modifying the source code.
+
 ---
 
-### 2.5 FailureDetector
+### 3.5 FailureDetector
 
-File:
+**Files:**
 
-    include/FailureDetector.h
-    src/FailureDetector.cpp
+```text
+include/FailureDetector.h
+src/FailureDetector.cpp
+```
 
-Purpose:
+**Purpose:**
 
-The FailureDetector checks whether monitored values have exceeded their configured thresholds.
+The `FailureDetector` component determines whether a monitored condition has exceeded its configured limit or whether the monitored process has failed.
 
 It checks:
 
 - CPU threshold
 - Memory threshold
 - Disk threshold
-- Process failure
+- Process running status
 
-When a failure condition is detected, the appropriate event is passed to the logging and recovery components.
+When an abnormal condition is detected, the event is passed to the appropriate logging and recovery logic.
 
----
-
-### 2.6 RecoveryManager
-
-File:
-
-    include/RecoveryManager.h
-    src/RecoveryManager.cpp
-
-Purpose:
-
-The RecoveryManager attempts to restart the configured process when a process failure is detected and recovery is enabled.
-
-The recovery mechanism was tested using a temporary test process.
-
-The test confirmed that when the monitored process was stopped, Linux Sentinel-X detected the failure and attempted to restart the process.
+This separates failure detection from the actual recovery operation.
 
 ---
 
-### 2.7 Logger
+### 3.6 RecoveryManager
 
-File:
+**Files:**
 
-    include/Logger.h
-    src/Logger.cpp
+```text
+include/RecoveryManager.h
+src/RecoveryManager.cpp
+```
 
-Purpose:
+**Purpose:**
 
-The Logger records important monitoring events.
+The `RecoveryManager` component handles controlled recovery of the monitored process.
 
-Log file:
+When the monitored process is detected as not running and recovery is enabled, the component attempts to restart the process.
 
-    logs/sentinel.log
+The recovery mechanism includes:
 
-Examples of recorded events include:
-
-- CPU threshold exceeded
-- Memory threshold exceeded
-- Disk threshold exceeded
-- Process failure
 - Recovery attempt
+- Recovery result verification
+- Recovery attempt limitation
+- Handling of unsuccessful recovery
+- Reporting when manual intervention is required
+
+The system does not continuously restart a failed process without limitation. This prevents uncontrolled recovery attempts.
 
 ---
 
-## 3. Main Program Integration
+### 3.7 Logger
 
-File:
+**Files:**
 
-    src/main.cpp
+```text
+include/Logger.h
+src/Logger.cpp
+```
 
-The main program integrates all implemented components.
+**Purpose:**
 
-The monitoring flow is:
+The `Logger` component records important system monitoring and recovery events.
 
-    Load Configuration
-            |
-            v
+The log file is:
+
+```text
+logs/sentinel.log
+```
+
+Events recorded by the logger may include:
+
+- CPU threshold violations
+- Memory threshold violations
+- Disk threshold violations
+- Process failures
+- Recovery attempts
+- Successful recovery
+- Failed recovery
+- Recovery being blocked
+- Manual intervention requirements
+
+Logging provides a record of important events during system operation.
+
+---
+
+## 4. Main Program Integration
+
+**File:**
+
+```text
+src/main.cpp
+```
+
+The `main.cpp` file coordinates the different modules and controls the main monitoring workflow.
+
+The overall workflow is:
+
+```text
+        Start Application
+              |
+              v
+       Load Configuration
+              |
+              v
     Display System Information
-            |
-            v
-    Monitor CPU, Memory and Disk
-            |
-            v
-    Check Monitored Process
-            |
-            v
-    Detect Failure Conditions
-            |
-            v
-    Log Events
-            |
-            v
-    Attempt Recovery
-            |
-            v
-    Repeat After Monitoring Interval
+              |
+              v
+       Start Monitoring Loop
+              |
+              v
+    Monitor CPU / Memory / Disk
+              |
+              v
+      Monitor Configured Process
+              |
+              v
+       Detect Abnormal Conditions
+              |
+        +-----+------+
+        |            |
+        v            v
+      Normal       Failure
+        |            |
+        |            v
+        |        Record Event
+        |            |
+        |            v
+        |       Recovery Enabled?
+        |         /        \
+        |       No          Yes
+        |       |            |
+        |       v            v
+        |     Log       Attempt Recovery
+        |                    |
+        |                    v
+        |              Verify Recovery
+        |                    |
+        |             +------+------+
+        |             |             |
+        |           Success       Failure
+        |             |             |
+        |             v             v
+        |           Log      Check Retry Limit
+        |                           |
+        +---------------------------+
+                    |
+                    v
+             Wait Monitoring Interval
+                    |
+                    v
+              Repeat Monitoring
+```
 
-The monitoring loop runs continuously according to the configured monitoring interval.
-
----
-
-## 4. Build System
-
-File:
-
-    CMakeLists.txt
-
-CMake is used to build the Linux Sentinel-X application.
-
-The project uses:
-
-- C++17
-- CMake
-- GNU C++ compiler
-
-The project was successfully configured and built using:
-
-    cmake --build build
-
-The final executable is:
-
-    build/linux-sentinel-x
-
----
-
-## 5. Functional Verification
-
-The implementation was tested successfully.
-
-### Normal Monitoring
-
-Linux Sentinel-X successfully displayed:
-
-- Hostname
-- Kernel information
-- CPU information
-- Memory information
-- CPU usage
-- Memory usage
-- Disk usage
-- Process status
-
-### Failure Detection
-
-A temporary test process named `testprocess` was used to verify process monitoring.
-
-The process was detected as running.
-
-After the process was intentionally stopped, Linux Sentinel-X detected:
-
-    Process (testprocess): Not Running
-
-### Automatic Recovery
-
-After detecting the process failure, the RecoveryManager attempted to restart the process.
-
-The next monitoring cycle showed:
-
-    Process (testprocess): Running
-
-This confirmed that the process recovery mechanism was functioning.
-
-### Logging
-
-The logging system was also verified.
-
-The log contained events such as:
-
-    CPU Threshold
-    Process Failure
-    Recovery attempted
+The application continues monitoring until a termination signal is received.
 
 ---
 
-## 6. Git Version Control
+## 5. Safe Shutdown
 
-The completed Stage 4 implementation was committed to Git.
+Linux-Sentinel-X includes handling for application termination.
 
-Commit:
+When the application receives a termination signal, the monitoring loop is stopped in a controlled manner.
 
-    9a93eb2
+The shutdown process is designed to:
 
-Commit message:
+- Stop further monitoring
+- Exit the monitoring loop safely
+- Avoid unnecessary operations during termination
+- Terminate the application cleanly
 
-    Add failure detection and recovery
-
-The changes were successfully pushed to the GitHub repository.
+This improves the reliability of the long-running monitoring application.
 
 ---
 
-## 7. Stage 4 Status
+## 6. Recovery Control
 
-Stage 4 implementation is complete.
+The recovery mechanism was implemented with controlled retry behaviour.
 
-Completed components:
+When a monitored process stops:
 
-- System information
-- Resource monitoring
+1. The process failure is detected.
+2. The failure event is logged.
+3. The recovery setting is checked.
+4. A recovery attempt is performed when recovery is enabled.
+5. The process status is checked again.
+6. If recovery succeeds, the successful recovery is recorded.
+7. If recovery fails, the configured recovery limit is considered.
+8. Further automatic recovery is blocked when the retry limit is reached.
+9. Manual intervention is reported when automatic recovery cannot continue.
+
+This prevents unlimited automatic restart attempts.
+
+---
+
+## 7. Build System
+
+**File:**
+
+```text
+CMakeLists.txt
+```
+
+CMake is used to configure and build the project.
+
+The project is compiled using the GNU C++ compiler and C++17.
+
+The project was successfully built using:
+
+```bash
+cmake --build build
+```
+
+The build generated the Linux-Sentinel-X executable.
+
+The successful build confirmed that the implemented source files and project configuration were correctly integrated.
+
+---
+
+## 8. Initial Prototype Demonstration
+
+The initial working prototype was executed in the Linux environment.
+
+The application successfully demonstrated:
+
+- System information display
+- CPU monitoring
+- Memory monitoring
+- Disk monitoring
 - Process monitoring
+- Threshold checking
+- Failure detection
+- Process recovery
+- Event logging
+- Configuration-based monitoring
+
+Example monitoring output included values such as:
+
+```text
+CPU Usage: 0.0313868%
+Memory Usage: 7.7303%
+Disk Usage: 5.36056%
+Process (bash): Running
+```
+
+The prototype demonstrated that the major monitoring components were successfully integrated into one working application.
+
+---
+
+## 9. Process Failure and Recovery Demonstration
+
+A temporary test process named `testprocess` was used to verify process monitoring and recovery.
+
+When the process was running, Linux-Sentinel-X detected:
+
+```text
+Process (testprocess): Running
+```
+
+The process was then intentionally stopped.
+
+The monitoring system detected:
+
+```text
+Process (testprocess): Not Running
+```
+
+The failure was recorded and the `RecoveryManager` attempted to restart the process.
+
+After successful recovery, the next monitoring cycle detected:
+
+```text
+Process (testprocess): Running
+```
+
+The demonstrated sequence was:
+
+```text
+Running
+   ↓
+Process stopped
+   ↓
+Not Running
+   ↓
+Failure detected
+   ↓
+Recovery attempted
+   ↓
+Recovery verified
+   ↓
+Running
+```
+
+This confirmed the basic process supervision and recovery workflow.
+
+---
+
+## 10. Event Logging Demonstration
+
+The logging mechanism was verified during implementation.
+
+Example events recorded by the system include:
+
+```text
+Event: Process Failure
+Status: Process is not running
+Action: Recovery attempted
+```
+
+Threshold-related events were also recorded when applicable.
+
+The logging mechanism provides useful information about system conditions and actions taken by the monitoring system.
+
+---
+
+## 11. Git Version Control
+
+The implementation was maintained using Git and pushed to the GitHub repository.
+
+The project repository contains:
+
+- Source code
+- Header files
+- Configuration files
+- Test files
+- CMake build configuration
+- Stage-wise documentation
+- README documentation
+
+The implementation changes were committed to Git during development to maintain project progress and version history.
+
+---
+
+## 12. Implementation Issues and Solutions
+
+During implementation, issues related to monitoring, process recovery and application behaviour were identified and addressed.
+
+The implementation was improved by:
+
+- Separating functionality into independent modules
+- Adding controlled recovery attempts
+- Verifying recovery results
+- Recording failure and recovery events
+- Using configuration-based monitoring values
+- Handling termination signals safely
+- Separating detection and recovery responsibilities
+- Improving handling of recovery failure conditions
+
+These changes improved the reliability and maintainability of the application.
+
+---
+
+## 13. Stage 4 Deliverables
+
+The following were completed during Stage 4:
+
+- System information module
+- Resource monitoring module
+- Process monitoring module
 - Configuration management
 - Failure detection
-- Recovery management
+- Controlled process recovery
+- Recovery verification
+- Recovery attempt control
 - Event logging
-- Main program integration
-- CMake build
-- Functional verification
-- GitHub version control
+- Safe shutdown handling
+- Main application integration
+- CMake build configuration
+- Working Linux prototype
+- Git version control
+- Updated project documentation
 
-Stage 4 provides the working implementation required for the next stage: testing, integration and improvement.
+---
+
+## 14. Stage 4 Status
+
+Stage 4 – Initial Implementation & Prototype was completed successfully.
+
+The core Linux-Sentinel-X application was implemented and integrated into a working monitoring and process supervision system.
+
+The prototype demonstrated system monitoring, process monitoring, failure detection, controlled recovery, recovery verification, event logging and configuration-based operation.
+
+The completed implementation provided the foundation for Stage 5 – Testing, Integration & Improvement.
