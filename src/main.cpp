@@ -12,6 +12,7 @@
 #include "ConfigManager.h"
 
 volatile std::sig_atomic_t running = 1;
+bool recoveryBlocked = false;
 
 void handleSignal(int signal)
 {
@@ -23,24 +24,34 @@ void handleSignal(int signal)
 
 int main()
 {
-    // Register signal handlers
+    // --------------------------------------------------
+    // SIGNAL HANDLING
+    // --------------------------------------------------
+
     std::signal(SIGINT, handleSignal);
     std::signal(SIGTERM, handleSignal);
+
+    // --------------------------------------------------
+    // CONFIGURATION
+    // --------------------------------------------------
 
     Config config;
     ConfigManager configManager;
 
-    // Load configuration
     if (!configManager.loadConfig(
             "config/sentinel.conf", config))
     {
-        std::cerr << "[ERROR] Failed to load configuration."
-                  << std::endl;
+        std::cerr
+            << "[ERROR] Failed to load configuration."
+            << std::endl;
 
         return 1;
     }
 
-    // Create system components
+    // --------------------------------------------------
+    // CREATE SYSTEM COMPONENTS
+    // --------------------------------------------------
+
     SystemInfo systemInfo;
     ResourceMonitor resourceMonitor;
     ProcessMonitor processMonitor;
@@ -57,21 +68,26 @@ int main()
     // STARTUP
     // --------------------------------------------------
 
-    std::cout << "===================================="
-              << std::endl;
+    std::cout
+        << "===================================="
+        << std::endl;
 
-    std::cout << "       Linux Sentinel-X"
-              << std::endl;
+    std::cout
+        << "       Linux Sentinel-X"
+        << std::endl;
 
-    std::cout << "===================================="
-              << std::endl;
+    std::cout
+        << "===================================="
+        << std::endl;
 
-    std::cout << "Monitoring: "
-              << config.processName
-              << std::endl;
+    std::cout
+        << "Monitoring: "
+        << config.processName
+        << std::endl;
 
-    std::cout << "Press Ctrl+C to stop Sentinel-X."
-              << std::endl;
+    std::cout
+        << "Press Ctrl+C to stop Sentinel-X."
+        << std::endl;
 
     logger.logEvent(
         "INFO",
@@ -87,9 +103,9 @@ int main()
 
     while (running)
     {
-        // -------------------------------
+        // ==================================================
         // 1. MONITOR
-        // -------------------------------
+        // ==================================================
 
         double cpuUsage =
             resourceMonitor.getCpuUsage();
@@ -105,35 +121,65 @@ int main()
                 config.processName
             );
 
-        std::cout << "\n--- System Status ---"
-                  << std::endl;
+        std::cout
+            << "\n--- System Status ---"
+            << std::endl;
 
-        std::cout << "CPU Usage: "
-                  << cpuUsage
-                  << "%"
-                  << std::endl;
+        std::cout
+            << "CPU Usage: "
+            << cpuUsage
+            << "%"
+            << std::endl;
 
-        std::cout << "Memory Usage: "
-                  << memoryUsage
-                  << "%"
-                  << std::endl;
+        std::cout
+            << "Memory Usage: "
+            << memoryUsage
+            << "%"
+            << std::endl;
 
-        std::cout << "Disk Usage: "
-                  << diskUsage
-                  << "%"
-                  << std::endl;
+        std::cout
+            << "Disk Usage: "
+            << diskUsage
+            << "%"
+            << std::endl;
 
-        std::cout << "Process ("
-                  << config.processName
-                  << "): "
-                  << (processRunning
-                          ? "Running"
-                          : "Not Running")
-                  << std::endl;
+        std::cout
+            << "Process ("
+            << config.processName
+            << "): "
+            << (processRunning
+                    ? "Running"
+                    : "Not Running")
+            << std::endl;
 
-        // -------------------------------
-        // 2. DETECT
-        // -------------------------------
+        // ==================================================
+        // RESET RECOVERY BLOCK
+        // ==================================================
+
+        /*
+         * If the process is running again after a previous
+         * recovery failure, allow automatic recovery again.
+         */
+        if (processRunning && recoveryBlocked)
+        {
+            recoveryBlocked = false;
+
+            std::cout
+                << "[INFO] Process recovered. "
+                << "Automatic recovery enabled again."
+                << std::endl;
+
+            logger.logEvent(
+                "INFO",
+                "Recovery state reset",
+                config.processName +
+                " is running again"
+            );
+        }
+
+        // ==================================================
+        // 2. RESOURCE FAILURE DETECTION
+        // ==================================================
 
         if (failureDetector.cpuExceeded(
                 cpuUsage, config))
@@ -180,9 +226,9 @@ int main()
             );
         }
 
-        // -------------------------------
+        // ==================================================
         // 3. PROCESS FAILURE DETECTION
-        // -------------------------------
+        // ==================================================
 
         if (failureDetector.processFailed(
                 processRunning))
@@ -198,11 +244,11 @@ int main()
                 " is not running"
             );
 
-            // -------------------------------
-            // 4. RECOVER
-            // -------------------------------
+            // ==================================================
+            // 4. RECOVERY
+            // ==================================================
 
-            if (config.recoveryEnabled)
+            if (config.recoveryEnabled && !recoveryBlocked)
             {
                 logger.logEvent(
                     "RECOVERY",
@@ -215,9 +261,9 @@ int main()
                         config.processName
                     );
 
-                // -------------------------------
+                // ==================================================
                 // 5. VERIFY + LOG RESULT
-                // -------------------------------
+                // ==================================================
 
                 if (recovered)
                 {
@@ -234,19 +280,58 @@ int main()
                 }
                 else
                 {
+                    /*
+                     * RecoveryManager has already used the
+                     * configured maximum number of attempts.
+                     *
+                     * Block automatic recovery so that Sentinel
+                     * does not continuously retry every cycle.
+                     */
+                    recoveryBlocked = true;
+
                     std::cout
                         << "[ERROR] Recovery failed"
+                        << std::endl;
+
+                    std::cout
+                        << "[ERROR] Automatic recovery blocked. "
+                        << "Manual intervention required."
                         << std::endl;
 
                     logger.logEvent(
                         "ERROR",
                         "Recovery failed",
-                        "Manual intervention required"
+                        "Automatic recovery blocked; "
+                        "manual intervention required"
                     );
                 }
             }
+            else if (recoveryBlocked)
+            {
+                /*
+                 * Recovery has already failed the maximum number
+                 * of attempts. Do not repeatedly retry.
+                 */
+                std::cout
+                    << "[WARNING] Automatic recovery is blocked. "
+                    << "Manual intervention required."
+                    << std::endl;
+
+                logger.logEvent(
+                    "WARNING",
+                    "Recovery blocked",
+                    "Manual intervention required"
+                );
+            }
             else
             {
+                /*
+                 * Recovery is disabled in configuration.
+                 */
+                std::cout
+                    << "[WARNING] Automatic recovery is disabled."
+                    << std::endl;
+
                 logger.logEvent(
                     "WARNING",
                     "Recovery disabled",
@@ -255,9 +340,9 @@ int main()
             }
         }
 
-        // -------------------------------
+        // ==================================================
         // WAIT FOR NEXT MONITORING CYCLE
-        // -------------------------------
+        // ==================================================
 
         std::this_thread::sleep_for(
             std::chrono::seconds(
@@ -266,9 +351,9 @@ int main()
         );
     }
 
-    // --------------------------------------------------
+    // ==================================================
     // CONTROLLED SHUTDOWN
-    // --------------------------------------------------
+    // ==================================================
 
     logger.logEvent(
         "INFO",
@@ -276,17 +361,22 @@ int main()
         "Monitoring stopped by signal"
     );
 
-    std::cout << "\n===================================="
-              << std::endl;
+    std::cout
+        << "\n===================================="
+        << std::endl;
 
-    std::cout << "       Linux Sentinel-X"
-              << std::endl;
+    std::cout
+        << "       Linux Sentinel-X"
+        << std::endl;
 
-    std::cout << "       Shutting down..."
-              << std::endl;
+    std::cout
+        << "       Shutting down..."
+        << std::endl;
 
-    std::cout << "===================================="
-              << std::endl;
+    std::cout
+        << "===================================="
+        << std::endl;
 
     return 0;
 }
+

@@ -1,3 +1,4 @@
+
 #include "RecoveryManager.h"
 
 #include <cstdlib>
@@ -81,14 +82,13 @@ bool RecoveryManager::restartProcess(const std::string& processName)
         return false;
     }
 
-    std::cout << "[RECOVERY] Stopping process..."
-              << std::endl;
-
-    std::string stopCommand =
-        "pkill -x \"" + processName + "\" > /dev/null 2>&1";
-
-    std::system(stopCommand.c_str());
-
+    /*
+     * The process has already been detected as not running
+     * by ProcessMonitor before recovery starts.
+     *
+     * Therefore, there is no need to call pkill here.
+     * Recovery only needs to start the executable.
+     */
     std::cout << "[RECOVERY] Starting process..."
               << std::endl;
 
@@ -117,3 +117,4 @@ void RecoveryManager::waitBeforeRetry()
         std::chrono::seconds(retryDelay)
     );
 }
+
