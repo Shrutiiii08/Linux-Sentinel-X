@@ -1,172 +1,242 @@
 # Linux-Sentinel-X
 
-## Linux System Monitoring, Process Supervision and Recovery
+## Linux System Monitoring, Process Supervision and Controlled Recovery System
 
-Linux Sentinel-X is an individual Linux-based monitoring project developed using C++. The main purpose of the project is to monitor important system resources and a selected Linux process continuously.
+Linux-Sentinel-X is a Linux-based system monitoring and process supervision application developed using **C++ and Linux system programming concepts**.
 
-The system checks CPU usage, memory usage, disk usage and the status of a configured process. If the monitored process stops running, Sentinel-X detects the failure and tries to recover the process automatically.
+The system continuously monitors selected system resources and a configured Linux process. It detects configured resource threshold violations and process failures, records important events in a log file, and performs controlled recovery when automatic recovery is enabled.
 
-If the recovery attempts fail after the configured limit, automatic recovery is blocked and the system reports that **manual intervention is required**. This prevents the program from continuously trying to restart a failed process.
-
-The project demonstrates practical concepts of Linux, C++, system monitoring, process management, recovery handling, configuration files, logging and CMake.
+The project was developed as an individual project and follows a structured development process covering **requirements, system design, implementation, testing, validation and finalization**.
 
 ---
 
-## Project Type
+## 1. Project Objective
 
-**Individual Capstone Project**
+The main objective of Linux-Sentinel-X is to provide a simple and reliable Linux monitoring and process supervision mechanism.
 
----
+The system is designed to:
 
-## Programming Language
-
-**C++**
-
----
-
-## Operating System
-
-**Linux**
-
-The project was developed and tested in a Linux environment using Ubuntu/WSL.
-
----
-
-## Build System
-
-**CMake**
+- Monitor CPU, memory and disk usage.
+- Monitor a configured Linux process.
+- Detect configured resource threshold violations.
+- Detect when the monitored process stops.
+- Record important monitoring and recovery events.
+- Attempt controlled process recovery when enabled.
+- Verify whether recovery was successful.
+- Limit repeated recovery attempts.
+- Report when manual intervention is required.
+- Shut down safely when requested.
 
 ---
 
-## Compiler
+## 2. Problem Statement
 
-**GNU C++ Compiler (g++)**
+Linux systems continuously run multiple processes and system services. A process may stop unexpectedly or system resources may exceed acceptable limits.
+
+Manually monitoring these conditions continuously is difficult.
+
+Linux-Sentinel-X addresses this problem by providing an automated user-space monitoring and supervision mechanism that periodically checks system resources and a configured process, detects abnormal conditions, records events and performs controlled recovery where applicable.
 
 ---
 
-## Main Features
+## 3. Key Features
 
-### 1. System Monitoring
+### System Information
 
-Linux Sentinel-X continuously monitors:
+The application displays basic Linux system information including:
+
+- Hostname
+- Kernel version
+- CPU information
+- Memory information
+
+### Resource Monitoring
+
+The application monitors:
 
 - CPU usage
 - Memory usage
 - Disk usage
-- Configured process status
 
-The current system status is displayed in the terminal during every monitoring cycle.
+The monitoring interval is configurable.
 
----
+### Process Monitoring
 
-### 2. Process Monitoring
+A configured Linux process is continuously checked to determine whether it is running.
 
-The project monitors a process specified in the configuration file.
+### Failure Detection
 
-For example:
+Linux-Sentinel-X detects:
+
+- CPU usage above the configured threshold
+- Memory usage above the configured threshold
+- Disk usage above the configured threshold
+- Monitored process failure
+
+### Controlled Recovery
+
+When the monitored process is not running and automatic recovery is enabled, the system attempts to restart it.
+
+The recovery mechanism includes:
+
+- Recovery attempts
+- Recovery verification
+- Configurable maximum recovery attempts
+- Retry delay
+- Recovery blocking after repeated failure
+- Manual intervention notification
+
+### Recovery State Handling
+
+When recovery repeatedly fails, automatic recovery is blocked to prevent unlimited restart attempts.
+
+The system reports:
 
 ```text
-Process (testprocess): Running
+Automatic recovery blocked.
+Manual intervention required.
 ```
 
-If the process is stopped:
+When the monitored process becomes available again, the recovery state can be reset and automatic recovery can become available again.
+
+### Event Logging
+
+Important events are recorded in:
 
 ```text
-Process (testprocess): Not Running
+logs/sentinel.log
 ```
 
-Sentinel-X detects this as a process failure.
+Examples include:
 
----
-
-### 3. Failure Detection
-
-The system checks whether configured resource limits are exceeded.
-
-It can detect:
-
-- High CPU usage
-- High memory usage
-- High disk usage
+- CPU threshold exceeded
+- Memory threshold exceeded
+- Disk threshold exceeded
 - Process failure
+- Recovery initiated
+- Recovery successful
+- Recovery failed
+- Recovery blocked
+- Manual intervention required
+- Sentinel startup
+- Sentinel shutdown
 
-Warnings are displayed in the terminal and recorded in the log file.
+### Safe Shutdown
 
----
-
-### 4. Automatic Recovery
-
-When the monitored process is not running, Sentinel-X starts the recovery process.
-
-The recovery system uses a limited number of attempts.
-
-Example:
-
-```text
-[RECOVERY] Starting recovery for: testprocess
-[RECOVERY] Attempt 1/3
-[RECOVERY] Starting process...
-[VERIFY] Checking process...
-[INFO] Recovery successful
-```
-
-After starting the process, Sentinel-X checks whether the process is actually running before considering the recovery successful.
+The application handles termination signals such as `SIGINT` and `SIGTERM` and performs a controlled shutdown.
 
 ---
 
-### 5. Recovery Failure Handling
+## 4. System Workflow
 
-If the recovery command fails, Sentinel-X does not keep trying forever.
-
-For example:
+The overall monitoring workflow is:
 
 ```text
-[RECOVERY] Attempt 1/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 2/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 3/3
-[ERROR] Restart command failed
-
-[ERROR] Recovery limit reached
-[ERROR] Manual intervention required
+        Start Linux-Sentinel-X
+                  |
+                  v
+        Load Configuration
+                  |
+                  v
+       Display System Information
+                  |
+                  v
+       Monitor System Resources
+        /          |          \
+       v           v           v
+     CPU        Memory       Disk
+        \          |          /
+         \         |         /
+                  v
+        Monitor Configured Process
+                  |
+                  v
+          Detect Conditions
+                  |
+          +-------+-------+
+          |               |
+          v               v
+     Threshold       Process Failure
+      Violation          |
+          |              v
+          |        Recovery Enabled?
+          |          /          \
+          |        Yes           No
+          |         |             |
+          |         v             v
+          |    Attempt Recovery  Log Event
+          |         |
+          |         v
+          |    Verify Process
+          |       /       \
+          |     Yes        No
+          |      |          |
+          |      v          v
+          |   Success   Retry Until Limit
+          |                  |
+          |                  v
+          |          Manual Intervention
+          |
+          v
+       Log Event
+          |
+          v
+   Wait for Monitoring Interval
+          |
+          v
+     Repeat Monitoring
 ```
-
-After the maximum number of attempts is reached, automatic recovery is blocked.
 
 ---
 
-### 6. Manual Intervention
+## 5. Recovery Workflow
 
-Manual intervention is used as a safety mechanism when automatic recovery cannot restore the monitored process.
-
-After recovery fails, the system displays:
+The recovery mechanism follows a controlled process:
 
 ```text
-[ERROR] Recovery failed
-[ERROR] Automatic recovery blocked. Manual intervention required.
+Process Running
+      |
+      v
+Process Stops
+      |
+      v
+Failure Detected
+      |
+      v
+Recovery Enabled?
+      |
+     Yes
+      |
+      v
+Recovery Attempt
+      |
+      v
+Check Process
+    /     \
+  Running  Not Running
+    |          |
+    v          v
+ Success    Retry
+               |
+               v
+       Maximum Attempts?
+          /          \
+        No            Yes
+        |              |
+        v              v
+   Try Again      Block Recovery
+                       |
+                       v
+             Manual Intervention
 ```
 
-On the next monitoring cycles, Sentinel-X does not repeatedly attempt recovery.
-
-Instead, it reports:
-
-```text
-[WARNING] Process failure detected
-[WARNING] Automatic recovery is blocked. Manual intervention required.
-```
-
-This prevents an endless recovery loop.
-
-Once the monitored process is running again, the recovery block is cleared and automatic recovery becomes available again.
+This prevents the application from repeatedly attempting recovery without a limit.
 
 ---
 
-### 7. Configuration File
+## 6. Configuration
 
-The monitoring settings are stored in:
+Monitoring settings are stored in:
 
 ```text
 config/sentinel.conf
@@ -180,63 +250,73 @@ monitor_interval=5
 cpu_threshold=80
 memory_threshold=80
 disk_threshold=80
+recovery_enabled=true
 max_recovery_attempts=3
 retry_delay=2
-recovery_enabled=true
 ```
 
-The configuration file makes it easier to change monitoring settings without modifying the source code.
+### Configuration Parameters
+
+| Parameter | Purpose |
+|---|---|
+| `process_name` | Process monitored by Linux-Sentinel-X |
+| `monitor_interval` | Time between monitoring cycles |
+| `cpu_threshold` | Maximum configured CPU usage threshold |
+| `memory_threshold` | Maximum configured memory usage threshold |
+| `disk_threshold` | Maximum configured disk usage threshold |
+| `recovery_enabled` | Enables or disables automatic recovery |
+| `max_recovery_attempts` | Maximum number of recovery attempts |
+| `retry_delay` | Delay between recovery attempts |
 
 ---
 
-### 8. Logging
+## 7. Project Architecture
 
-Important events are stored in:
-
-```text
-logs/sentinel.log
-```
-
-The log records events such as:
-
-- Sentinel startup
-- Resource warnings
-- Process failure
-- Recovery attempts
-- Recovery success
-- Recovery failure
-- Recovery being blocked
-- Manual intervention requirement
-- Sentinel shutdown
-
-Example:
+Linux-Sentinel-X follows a modular architecture.
 
 ```text
-[2026-10-04 07:34:42] [WARNING] Process failure detected | testprocess is not running
-[2026-10-04 07:34:42] [WARNING] Recovery blocked | Manual intervention required
+                    +----------------+
+                    |    main.cpp    |
+                    |  Coordinator   |
+                    +-------+--------+
+                            |
+       +--------------------+--------------------+
+       |          |           |          |       |
+       v          v           v          v       v
++-----------+ +----------+ +----------+ +-----+ +--------+
+| System    | | Resource | | Process  | |Config| | Logger |
+| Info      | | Monitor  | | Monitor  | |Mgr   | |        |
++-----------+ +----------+ +----------+ +-----+ +--------+
+       |          |           |
+       |          |           v
+       |          |    +----------------+
+       |          +--->|    Failure     |
+       |               |    Detector    |
+       |               +-------+--------+
+       |                       |
+       |                       v
+       |               +---------------+
+       +-------------->|   Recovery    |
+                       |   Manager     |
+                       +---------------+
 ```
+
+### Main Components
+
+| Component | Responsibility |
+|---|---|
+| `SystemInfo` | Collects and displays basic Linux system information |
+| `ResourceMonitor` | Collects CPU, memory and disk usage |
+| `ProcessMonitor` | Checks whether the configured process is running |
+| `FailureDetector` | Detects threshold violations and process failures |
+| `RecoveryManager` | Performs controlled process recovery |
+| `Logger` | Records important system and recovery events |
+| `ConfigManager` | Loads configuration settings |
+| `main.cpp` | Coordinates the complete monitoring workflow |
 
 ---
 
-### 9. Controlled Shutdown
-
-The program can be stopped safely using:
-
-```text
-Ctrl+C
-```
-
-The program handles the shutdown signal and records the shutdown event in the log.
-
-Example:
-
-```text
-[INFO] Sentinel shutting down | Monitoring stopped by signal
-```
-
----
-
-## Project Structure
+## 8. Project Structure
 
 ```text
 Linux-Sentinel-X/
@@ -245,6 +325,12 @@ Linux-Sentinel-X/
 │   └── sentinel.conf
 │
 ├── docs/
+│   ├── stage-1-project-introduction.md
+│   ├── stage-2-project-requirements.md
+│   ├── stage-3-system-design.md
+│   ├── stage-4-implementation.md
+│   ├── stage-5-testing-validation.md
+│   └── stage-6-finalization.md
 │
 ├── include/
 │   ├── ConfigManager.h
@@ -259,11 +345,11 @@ Linux-Sentinel-X/
 │   ├── ConfigManager.cpp
 │   ├── FailureDetector.cpp
 │   ├── Logger.cpp
+│   ├── main.cpp
 │   ├── ProcessMonitor.cpp
 │   ├── RecoveryManager.cpp
 │   ├── ResourceMonitor.cpp
-│   ├── SystemInfo.cpp
-│   └── main.cpp
+│   └── SystemInfo.cpp
 │
 ├── tests/
 │
@@ -274,177 +360,52 @@ Linux-Sentinel-X/
 
 ---
 
-## Main Components
+## 9. Technologies Used
 
-### SystemInfo
-
-Collects and displays basic information about the Linux system.
-
-### ResourceMonitor
-
-Monitors:
-
-- CPU usage
-- Memory usage
-- Disk usage
-
-### ProcessMonitor
-
-Checks whether the configured process is currently running.
-
-### FailureDetector
-
-Checks system resource values and process status to identify failures or threshold violations.
-
-### RecoveryManager
-
-Handles the recovery process when the monitored process stops running.
-
-It also controls:
-
-- Maximum recovery attempts
-- Retry delay
-- Recovery verification
-- Recovery failure handling
-
-### ConfigManager
-
-Reads monitoring settings from the configuration file.
-
-### Logger
-
-Stores important system and recovery events in the log file.
-
-### main.cpp
-
-Controls the overall workflow:
-
-```text
-Monitor
-   ↓
-Detect
-   ↓
-Recover
-   ↓
-Verify
-   ↓
-Log Result
-   ↓
-Continue Monitoring
-```
+| Category | Technology |
+|---|---|
+| Programming Language | C++ |
+| Operating System | Linux |
+| Build System | CMake |
+| Compiler | GNU C++ |
+| Version Control | Git |
+| Repository | GitHub |
+| Configuration | Custom configuration file |
+| System Interfaces | Linux system interfaces and `/proc` |
+| Documentation | Markdown |
 
 ---
 
-## How the Project Works
+## 10. Build Instructions
 
-The basic working flow of Linux Sentinel-X is:
+### Step 1 – Clone the Repository
 
-```text
-Start Sentinel-X
-        ↓
-Load Configuration
-        ↓
-Display System Information
-        ↓
-Monitor CPU / Memory / Disk
-        ↓
-Check Process Status
-        ↓
-Is there a failure?
-     /       \
-   No         Yes
-   ↓           ↓
-Continue    Start Recovery
-Monitoring      ↓
-             Attempt Recovery
-                  ↓
-             Verify Process
-              /        \
-           Success      Failure
-             ↓            ↓
-       Continue       Retry until
-       Monitoring     limit reached
-                          ↓
-                 Block Automatic Recovery
-                          ↓
-                 Manual Intervention Required
+```bash
+git clone https://github.com/Shrutiiii08/Linux-Sentinel-X.git
+cd Linux-Sentinel-X
 ```
 
----
-
-## Example: Successful Recovery
-
-If the monitored process is stopped and can be restarted successfully:
-
-```text
-Process (testprocess): Not Running
-
-[WARNING] Process failure detected
-[RECOVERY] Starting recovery for: testprocess
-[RECOVERY] Attempt 1/3
-[RECOVERY] Starting process...
-[VERIFY] Checking process...
-[INFO] Recovery successful
-```
-
-The next monitoring cycle shows:
-
-```text
-Process (testprocess): Running
-```
-
----
-
-## Example: Failed Recovery
-
-If the process cannot be started:
-
-```text
-[WARNING] Process failure detected
-[RECOVERY] Starting recovery for: testprocess
-
-[RECOVERY] Attempt 1/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 2/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 3/3
-[ERROR] Restart command failed
-
-[ERROR] Recovery limit reached
-[ERROR] Manual intervention required
-```
-
-The recovery system then becomes blocked:
-
-```text
-[WARNING] Automatic recovery is blocked. Manual intervention required.
-```
-
-This state continues until the monitored process is running again.
-
----
-
-## Building the Project
-
-From the project directory:
+### Step 2 – Configure the Project
 
 ```bash
 cmake -S . -B build
 ```
 
-Then build the project:
+### Step 3 – Build the Project
 
 ```bash
 cmake --build build
 ```
 
-If the build is successful, the executable is created in the build directory.
+A successful build produces the executable:
+
+```text
+build/linux-sentinel-x
+```
 
 ---
 
-## Running the Project
+## 11. Running the Application
 
 Run:
 
@@ -452,107 +413,347 @@ Run:
 ./build/linux-sentinel-x
 ```
 
-The program will start monitoring according to the configuration in:
+The application loads:
 
 ```text
 config/sentinel.conf
 ```
 
+and begins the monitoring loop.
+
+To stop the application safely:
+
+```text
+Ctrl + C
+```
+
 ---
 
-## Testing Manual Intervention
+## 12. Example Monitoring Output
 
-To test the manual intervention mechanism, configure a process that can be stopped and controlled during testing.
+A normal monitoring cycle displays information similar to:
 
-Check whether the process is running:
-
-```bash
-pgrep -x testprocess
+```text
+--- System Status ---
+CPU Usage: XX%
+Memory Usage: XX%
+Disk Usage: XX%
+Process (testprocess): Running
 ```
 
-Stop the process:
+If the monitored process stops:
 
-```bash
-pkill -x testprocess
+```text
+Process (testprocess): Not Running
+[WARNING] Process failure detected
 ```
 
-Then observe the Sentinel-X terminal output.
+The recovery mechanism can then attempt to restart the process.
 
-If automatic recovery cannot restart the process, the system should eventually display:
+After successful recovery:
+
+```text
+[INFO] Recovery successful
+Process (testprocess): Running
+```
+
+---
+
+## 13. Logging
+
+The application records important events in:
+
+```text
+logs/sentinel.log
+```
+
+The log can be viewed using:
+
+```bash
+tail -n 20 logs/sentinel.log
+```
+
+Example event:
+
+```text
+Event: Process Failure | Status: Process is not running | Action: Recovery attempted
+```
+
+Logging provides a record of system conditions, failures and recovery actions.
+
+---
+
+## 14. Testing and Validation
+
+The project was tested after implementation.
+
+The following areas were validated:
+
+| Test | Result |
+|---|---|
+| Project compilation | PASS |
+| System information | PASS |
+| CPU monitoring | PASS |
+| Memory monitoring | PASS |
+| Disk monitoring | PASS |
+| Process monitoring | PASS |
+| Resource threshold detection | PASS |
+| Process failure detection | PASS |
+| Automatic process recovery | PASS |
+| Recovery verification | PASS |
+| Recovery attempt control | PASS |
+| Failure logging | PASS |
+| Recovery logging | PASS |
+| Configuration handling | PASS |
+| Safe shutdown | PASS |
+
+A temporary test process was used during process failure and recovery testing.
+
+The tested recovery sequence was:
+
+```text
+Running → Not Running → Recovery Attempt → Running
+```
+
+This confirmed the main monitoring, failure detection, recovery and logging workflow.
+
+---
+
+## 15. Recovery Failure and Manual Intervention
+
+The project also handles unsuccessful automatic recovery.
+
+If the configured maximum number of recovery attempts is reached, automatic recovery is blocked.
+
+The system reports:
 
 ```text
 [ERROR] Recovery limit reached
 [ERROR] Manual intervention required
-[ERROR] Recovery failed
-[ERROR] Automatic recovery blocked. Manual intervention required.
 ```
 
-The log can be checked using:
-
-```bash
-tail -30 logs/sentinel.log
-```
+This prevents unlimited automatic restart attempts and provides a clear indication that further action is required.
 
 ---
 
-## Technologies and Concepts Used
+## 16. Development Stages
 
-- C++
-- Linux
-- Linux process management
+The project was developed through six stages.
+
+### Stage 1 – Project Introduction
+
+Defined:
+
+- Project idea
+- Problem statement
+- Objectives
+- Scope
+- Expected outcome
+- Application
+
+### Stage 2 – Project Requirements & Development Plan
+
+Defined:
+
+- Functional requirements
+- Non-functional requirements
+- Project modules
+- Project scope
+- Acceptance criteria
+- Development plan
+
+### Stage 3 – System Design & Architecture
+
+Defined:
+
+- System architecture
+- Component responsibilities
+- Monitoring workflow
+- Recovery workflow
+- Data flow
+- UML/design documentation
+- Implementation plan
+
+### Stage 4 – Initial Implementation
+
+Implemented:
+
+- System information
+- Resource monitoring
+- Process monitoring
+- Configuration management
+- Failure detection
+- Recovery management
+- Logging
+- Main monitoring workflow
+- CMake build
+
+### Stage 5 – Testing & Improvement
+
+Performed:
+
+- Build verification
+- System monitoring testing
+- Process monitoring testing
+- Failure detection testing
+- Recovery testing
+- Logging verification
+- Configuration testing
+- Reliability improvements
+
+### Stage 6 – Finalization
+
+Completed:
+
+- Final implementation review
+- Documentation
+- Project structure
+- Testing validation
+- GitHub repository organization
+- Final project preparation
+
+---
+
+## 17. Project Scope
+
+### Included
+
 - Linux system monitoring
 - CPU monitoring
 - Memory monitoring
 - Disk monitoring
-- Process detection
-- Automatic recovery
+- Process monitoring
+- Threshold detection
+- Process failure detection
+- Controlled process recovery
+- Recovery attempt limits
+- Recovery verification
 - Manual intervention handling
+- Event logging
 - Configuration management
+- Signal handling
+- CMake build system
+- Git and GitHub version control
+- Stage-wise documentation
+
+### Not Included
+
+- Graphical user interface
+- Cloud-based monitoring
+- Remote monitoring
+- Database-based monitoring
+- Email/SMS alerting
+- Kernel-level device driver development
+
+The project intentionally focuses on a simple, explainable and modular Linux user-space monitoring and process supervision system.
+
+---
+
+## 18. Limitations
+
+The current version has the following limitations:
+
+- Monitoring is performed locally on the Linux system.
+- Only the configured process is supervised.
+- Recovery is designed for the configured process rather than arbitrary services.
+- There is no graphical interface.
+- There is no remote monitoring or centralized dashboard.
+- Logging is file-based.
+- Recovery depends on the process being restartable in the Linux environment.
+
+---
+
+## 19. Future Improvements
+
+Possible future improvements include:
+
+- Monitoring multiple processes simultaneously.
+- Adding a graphical or web-based monitoring dashboard.
+- Adding remote monitoring capabilities.
+- Adding notification mechanisms.
+- Supporting service-specific recovery using Linux service management.
+- Adding more detailed performance statistics.
+- Improving automated testing and test coverage.
+- Adding more advanced fault detection mechanisms.
+
+These improvements are outside the scope of the current implementation.
+
+---
+
+## 20. Learning Outcomes
+
+Through this project, the following concepts were practiced:
+
+- C++ programming
+- Object-oriented programming
+- Linux system programming
+- Process management
+- System resource monitoring
+- Failure detection
+- Process recovery
 - File handling
+- Configuration management
 - Logging
 - Signal handling
+- Modular software design
 - CMake
 - Git and GitHub
+- Software development lifecycle
+- Testing and validation
 
 ---
 
-## What I Learned
+## 21. Capstone Development Process
 
-Through this project, I worked with practical Linux and C++ concepts such as process management, system resource monitoring, Linux commands, signal handling, configuration files and logging.
+The project follows the required development process:
 
-I also learned how to design a recovery mechanism with a limited number of attempts and how to handle recovery failure safely using a manual intervention state.
+```text
+Requirements
+     ↓
+System Design
+     ↓
+Implementation
+     ↓
+Testing
+     ↓
+Improvement
+     ↓
+Finalization
+```
 
-The project helped me understand how a monitoring program can continuously observe a system, detect failures and take controlled actions when required.
+Each stage was documented separately and maintained in the `docs/` directory.
 
----
-
-## Future Improvements
-
-Some possible improvements for the project are:
-
-- Add CPU temperature monitoring
-- Add network status monitoring
-- Add more detailed process information
-- Improve log formatting
-- Add a simple monitoring dashboard
-- Add support for monitoring multiple processes
-
----
-
-## Author
-
-**Shruti Shriya**
-
-B.Tech Computer Science and Engineering
-
-ITER, Siksha 'O' Anusandhan
+The project also maintained Git version control throughout development.
 
 ---
 
-## Project Repository
+## 22. Repository
 
-GitHub:
+GitHub Repository:
 
-**Linux-Sentinel-X**
+**https://github.com/Shrutiiii08/Linux-Sentinel-X**
 
-The project is developed as an individual Linux and C++ capstone project.
+The repository contains the source code, configuration, documentation and project files required to understand, build and demonstrate Linux-Sentinel-X.
+
+---
+
+## 23. Final Status
+
+**Linux-Sentinel-X – Project Completed**
+
+The project successfully implements a Linux-based system monitoring and process supervision system using C++.
+
+The final system can:
+
+- Monitor system resources
+- Monitor a configured process
+- Detect abnormal conditions
+- Detect process failures
+- Log important events
+- Attempt controlled process recovery
+- Verify recovery
+- Limit recovery attempts
+- Report when manual intervention is required
+- Shut down safely
+
+The project has completed its implementation, testing, documentation and finalization stages and is ready for final demonstration and evaluation.
