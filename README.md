@@ -1,159 +1,120 @@
 # Linux-Sentinel-X
 
-## Linux System Monitoring, Process Supervision and Automatic Recovery System
+## Linux System Monitoring, Process Supervision and Recovery System
 
-### Project Type
+Linux-Sentinel-X is a Linux-based system monitoring and process supervision system developed in **C++**. It continuously monitors important system resources and a configured process, detects abnormal conditions, records failure events, and performs controlled recovery actions.
 
-Individual Capstone Project
-
-### Programming Language
-
-C++
-
-### Operating System
-
-Linux
+The project demonstrates **Linux system programming, C++ object-oriented programming, process monitoring, resource monitoring, failure detection, process recovery, configuration management, signal handling, and event logging**.
 
 ---
 
-## Project Objective
+## Project Overview
 
-**Linux-Sentinel-X** is a Linux-based system monitoring and process supervision system developed in C++.
+Linux-Sentinel-X is designed to automatically detect when a monitored process stops running.
 
-The system continuously monitors important system resources and a configured Linux process. When an abnormal condition or process failure is detected, Sentinel-X records the event and can perform controlled automatic recovery.
+Instead of requiring immediate manual intervention, the system:
 
-The recovery mechanism does not blindly restart the process. It:
+1. Monitors the configured process.
+2. Detects when the process fails.
+3. Starts a controlled recovery procedure.
+4. Attempts to restart the process within a configured retry limit.
+5. Verifies whether recovery was successful.
+6. Records the result in the log.
+7. Reports **manual intervention required** if recovery cannot be completed.
 
-1. Detects the failure
-2. Initiates controlled recovery
-3. Verifies whether the process has recovered
-4. Retries recovery only within a configured limit
-5. Reports manual intervention when recovery cannot be completed
-
-The project demonstrates Linux system programming, C++ object-oriented programming, process monitoring, resource monitoring, failure detection, process recovery, configuration management, signal handling, and event logging.
-
----
-
-## Core Workflow
+### Recovery Workflow
 
 ```text
-Monitor System
-      ↓
-Detect Abnormal Condition
-      ↓
-Identify Affected Process
-      ↓
-Initiate Controlled Recovery
-      ↓
-Verify Recovery
-      ↓
-Retry Within Configured Limit
-      ↓
-Log Result
+              Process Running
+                    │
+                    ▼
+             Continuous Monitoring
+                    │
+                    ▼
+             Process Failure
+                    │
+                    ▼
+             Failure Detection
+                    │
+                    ▼
+          Controlled Recovery
+                    │
+             ┌──────┴──────┐
+             ▼             ▼
+       Recovery       Recovery Failed
+       Successful           │
+             │              ▼
+             ▼       Manual Intervention
+       Process Running       Required
 ```
 
 ---
 
-## Main Features
+## Project Type
 
-- System information monitoring
+**Individual Capstone Project**
+
+## Programming Language
+
+**C++**
+
+## Operating System
+
+**Linux**
+
+---
+
+# Key Features
+
 - CPU usage monitoring
 - Memory usage monitoring
 - Disk usage monitoring
 - Configured process monitoring
 - Process failure detection
 - Automatic process recovery
+- Limited recovery attempts
 - Recovery verification
-- Configurable recovery attempt limit
-- Retry delay between recovery attempts
-- Manual intervention handling
-- Configuration file support
-- Structured event logging
-- Graceful shutdown using Linux signals
+- Manual intervention detection
+- Configuration management
+- Event logging
+- Signal handling
+- Linux system information collection
 - C++ object-oriented design
 - CMake-based build system
 
 ---
 
-## Recovery Mechanism
-
-The recovery system is one of the core features of Linux-Sentinel-X.
-
-When the monitored process is found to be unavailable, Sentinel-X initiates controlled recovery.
-
-### Successful Recovery
+# System Components
 
 ```text
-Process Running
-      ↓
-Process Failure Detected
-      ↓
-Recovery Initiated
-      ↓
-Restart Attempt
-      ↓
-Process Verification
-      ↓
-Process Running
-      ↓
-Recovery Successful
+Linux-Sentinel-X
+│
+├── System Monitoring
+│   ├── CPU Usage
+│   ├── Memory Usage
+│   └── Disk Usage
+│
+├── Process Monitoring
+│   └── Configured Process
+│
+├── Failure Detection
+│   └── Process Failure Detection
+│
+├── Recovery Management
+│   ├── Recovery Attempt
+│   ├── Retry Limit
+│   └── Recovery Verification
+│
+├── Configuration Management
+│   └── sentinel.conf
+│
+└── Logging
+    └── sentinel.log
 ```
-
-Example:
-
-```text
-[WARNING] Process failure detected
-[RECOVERY] Recovery initiated
-[RECOVERY] Attempt 1/3
-[VERIFY] Checking process...
-[INFO] Recovery successful
-```
-
-### Failed Recovery
-
-If the process cannot be restarted, Sentinel-X does not retry indefinitely.
-
-```text
-Process Failure
-      ↓
-Recovery Attempt 1
-      ↓
-Verification Failed
-      ↓
-Recovery Attempt 2
-      ↓
-Verification Failed
-      ↓
-Recovery Attempt 3
-      ↓
-Verification Failed
-      ↓
-Recovery Limit Reached
-      ↓
-Manual Intervention Required
-```
-
-Example:
-
-```text
-[RECOVERY] Attempt 1/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 2/3
-[ERROR] Restart command failed
-
-[RECOVERY] Attempt 3/3
-[ERROR] Restart command failed
-
-[ERROR] Recovery limit reached
-[ERROR] Manual intervention required
-```
-
-This prevents the system from continuously attempting recovery without a defined limit.
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 Linux-Sentinel-X/
@@ -162,26 +123,21 @@ Linux-Sentinel-X/
 │   └── sentinel.conf
 │
 ├── docs/
-│   └── architecture.png
 │
 ├── include/
 │   ├── ConfigManager.h
 │   ├── FailureDetector.h
 │   ├── Logger.h
-│   ├── ProcessMonitor.h
 │   ├── RecoveryManager.h
-│   ├── ResourceMonitor.h
-│   └── SystemInfo.h
+│   └── ...
 │
 ├── src/
+│   ├── main.cpp
 │   ├── ConfigManager.cpp
 │   ├── FailureDetector.cpp
 │   ├── Logger.cpp
-│   ├── ProcessMonitor.cpp
 │   ├── RecoveryManager.cpp
-│   ├── ResourceMonitor.cpp
-│   ├── SystemInfo.cpp
-│   └── main.cpp
+│   └── ...
 │
 ├── tests/
 │
@@ -194,7 +150,7 @@ Linux-Sentinel-X/
 
 ---
 
-## Configuration
+# Configuration
 
 The monitoring configuration is stored in:
 
@@ -202,36 +158,56 @@ The monitoring configuration is stored in:
 config/sentinel.conf
 ```
 
-Example:
+Example configuration:
 
-```text
+```ini
 process_name=testprocess
 monitor_interval=5
+
 cpu_threshold=80
 memory_threshold=80
 disk_threshold=80
+
 recovery_enabled=true
 ```
 
-The configuration allows the monitored process, monitoring interval, resource thresholds, and recovery behavior to be changed without modifying the source code.
+### Configuration Parameters
+
+| Parameter | Purpose |
+|---|---|
+| `process_name` | Process monitored by Linux-Sentinel-X |
+| `monitor_interval` | Time between monitoring cycles |
+| `cpu_threshold` | CPU usage warning threshold |
+| `memory_threshold` | Memory usage warning threshold |
+| `disk_threshold` | Disk usage warning threshold |
+| `recovery_enabled` | Enables controlled recovery |
 
 ---
 
-## Build
+# Build
 
-From the project directory:
-
-```bash
-cmake -S . -B build
-```
-
-Then build:
+Clone the repository and enter the project directory:
 
 ```bash
-cmake --build build
+git clone https://github.com/Shrutiiii08/Linux-Sentinel-X.git
+cd Linux-Sentinel-X
 ```
 
-A successful build produces:
+Create the build directory:
+
+```bash
+mkdir -p build
+cd build
+cmake ..
+```
+
+Build the project:
+
+```bash
+cmake --build .
+```
+
+The executable is generated as:
 
 ```text
 build/linux-sentinel-x
@@ -239,15 +215,15 @@ build/linux-sentinel-x
 
 ---
 
-## Run
+# Run
 
-Run the application using:
+From the project root:
 
 ```bash
 ./build/linux-sentinel-x
 ```
 
-The program displays system information and continuously monitors the configured process and system resources.
+The program displays system information and continuously monitors the configured process.
 
 Press:
 
@@ -255,19 +231,114 @@ Press:
 Ctrl+C
 ```
 
-to stop Sentinel-X gracefully.
+to stop Linux-Sentinel-X safely.
 
 ---
 
-## Testing and Validation
+# Evidence and Testing
 
-Linux-Sentinel-X was tested using controlled process-failure scenarios.
+The project was tested through a functional monitoring and recovery workflow.
 
-### Test 1 — Successful Automatic Recovery
+The configured test process was intentionally stopped to simulate a process failure.
 
-The configured `testprocess` was intentionally stopped while Sentinel-X was running.
+Linux-Sentinel-X detected the failure and initiated its controlled recovery mechanism.
 
-Expected workflow:
+---
+
+## 1. Normal Monitoring
+
+During normal operation, Linux-Sentinel-X continuously reports system resource usage and process status.
+
+Example:
+
+```text
+--- System Status ---
+
+CPU Usage: 0.035%
+Memory Usage: 8.02%
+Disk Usage: 5.36%
+Process (testprocess): Running
+```
+
+The monitoring output confirms that:
+
+- CPU usage is being collected.
+- Memory usage is being collected.
+- Disk usage is being collected.
+- The configured process is being monitored.
+
+### Screenshot
+
+Add the normal monitoring screenshot here:
+
+```text
+docs/screenshots/normal-monitoring.png
+```
+
+Markdown:
+
+```markdown
+![Normal Monitoring](docs/screenshots/normal-monitoring.png)
+```
+
+---
+
+# 2. Process Failure Detection
+
+To test failure detection, the monitored `testprocess` was intentionally stopped.
+
+Linux-Sentinel-X detected that the process was no longer running:
+
+```text
+--- System Status ---
+
+CPU Usage: 0.035%
+Memory Usage: 8.02%
+Disk Usage: 5.36%
+Process (testprocess): Not Running
+
+[WARNING] Process failure detected
+[RECOVERY] Starting recovery for: testprocess
+```
+
+This demonstrates that the system can detect a monitored process failure without manual monitoring.
+
+### Screenshot
+
+Add the failure detection screenshot here:
+
+```text
+docs/screenshots/failure-detection.png
+```
+
+Markdown:
+
+```markdown
+![Failure Detection](docs/screenshots/failure-detection.png)
+```
+
+---
+
+# 3. Automatic Recovery
+
+When the failure was detected, Linux-Sentinel-X started the recovery workflow.
+
+A successful recovery was verified during testing:
+
+```text
+[WARNING] Process failure detected
+
+[RECOVERY] Starting recovery for: testprocess
+[RECOVERY] Attempt 1/3
+[RECOVERY] Stopping process...
+[RECOVERY] Starting process...
+[VERIFY] Checking process...
+[INFO] Recovery successful
+
+Process (testprocess): Running
+```
+
+The recovery workflow was:
 
 ```text
 Process Running
@@ -276,133 +347,268 @@ Process Stopped
       ↓
 Failure Detected
       ↓
-Recovery Initiated
+Recovery Attempt 1/3
       ↓
 Process Restarted
       ↓
 Recovery Verified
       ↓
-Recovery Successful
+Process Running Again
 ```
 
-This test was successfully completed.
+### Screenshot
 
----
-
-### Test 2 — Recovery Failure and Manual Intervention
-
-The `testprocess` executable was temporarily made unavailable and the running process was stopped.
-
-Sentinel-X attempted recovery three times.
-
-Expected behavior:
+Add the successful recovery screenshot here:
 
 ```text
-Attempt 1/3 → Failed
-Attempt 2/3 → Failed
-Attempt 3/3 → Failed
-Recovery Limit Reached
-Manual Intervention Required
+docs/screenshots/recovery-success.png
 ```
 
-This test was successfully completed.
+Markdown:
+
+```markdown
+![Recovery Success](docs/screenshots/recovery-success.png)
+```
 
 ---
 
-### Logging Validation
+# 4. Recovery Retry and Manual Intervention
 
-Recovery events are recorded in:
+The system was also tested with the recovery mechanism unable to restart the configured process.
+
+Linux-Sentinel-X correctly limited the recovery attempts to three:
+
+```text
+[WARNING] Process failure detected
+[RECOVERY] Starting recovery for: testprocess
+
+[RECOVERY] Attempt 1/3
+[ERROR] Restart command failed
+
+[RECOVERY] Attempt 2/3
+[ERROR] Restart command failed
+
+[RECOVERY] Attempt 3/3
+[ERROR] Restart command failed
+
+[ERROR] Recovery limit reached
+[ERROR] Manual intervention required
+[ERROR] Recovery failed
+```
+
+This demonstrates an important safety behavior: the system does **not retry indefinitely**.
+
+Instead, after the configured recovery limit is reached, it reports:
+
+```text
+Manual intervention required
+```
+
+### Screenshot
+
+Add the manual intervention screenshot here:
+
+```text
+docs/screenshots/manual-intervention.png
+```
+
+Markdown:
+
+```markdown
+![Manual Intervention Required](docs/screenshots/manual-intervention.png)
+```
+
+---
+
+# 5. Event Logging
+
+Linux-Sentinel-X records monitoring and recovery events in:
 
 ```text
 logs/sentinel.log
 ```
 
-The log records events such as:
+Example log output:
 
 ```text
-[INFO] Sentinel started
-[WARNING] Process failure detected
-[RECOVERY] Recovery initiated
-[INFO] Recovery successful
+[2026-10-04 06:21:46] [WARNING] Process failure detected | testprocess is not running
+[2026-10-04 06:21:46] [RECOVERY] Recovery initiated | Starting controlled recovery
+[2026-10-04 06:21:51] [ERROR] Recovery failed | Manual intervention required
 ```
 
-For failed recovery:
+The log provides a record of:
+
+- Process failures
+- Recovery initiation
+- Recovery results
+- Recovery failures
+- Manual intervention requirements
+- System shutdown events
+
+View the latest log entries using:
+
+```bash
+tail -15 logs/sentinel.log
+```
+
+### Screenshot
+
+Add the logging screenshot here:
 
 ```text
-[ERROR] Recovery failed
-[ERROR] Manual intervention required
+docs/screenshots/recovery-log.png
+```
+
+Markdown:
+
+```markdown
+![Recovery Log](docs/screenshots/recovery-log.png)
 ```
 
 ---
 
-## Technologies and Concepts
+# Testing Summary
+
+| Test | Result |
+|---|---|
+| Project compilation | Passed |
+| Linux execution | Passed |
+| CPU monitoring | Passed |
+| Memory monitoring | Passed |
+| Disk monitoring | Passed |
+| Process monitoring | Passed |
+| Process failure detection | Passed |
+| Automatic recovery | Passed |
+| Recovery verification | Passed |
+| Recovery retry limit | Passed |
+| Manual intervention detection | Passed |
+| Event logging | Passed |
+| Graceful shutdown | Passed |
+
+---
+
+# Development Stages
+
+The project was developed through the following stages:
+
+### Stage 1 — Project Introduction
+
+Defined the objective and scope of Linux-Sentinel-X.
+
+### Stage 2 — Requirements and Development Plan
+
+Identified the required Linux monitoring, process supervision, recovery, configuration, and logging functionality.
+
+### Stage 3 — System Design and Architecture
+
+Designed the project components for monitoring, failure detection, recovery management, configuration handling, and logging.
+
+### Stage 4 — Implementation
+
+Implemented the system using C++ and Linux system interfaces.
+
+### Stage 5 — Testing and Validation
+
+Tested normal monitoring, process failure detection, automatic recovery, recovery failure, retry limits, manual intervention reporting, logging, and graceful shutdown.
+
+---
+
+# Technologies and Concepts
 
 ### Programming
 
 - C++
 - Object-Oriented Programming
 - Classes and modular design
-- C++ standard library
+- File handling
+- Exception/error handling
 
 ### Linux
 
-- Linux process management
-- `/proc` system information
+- Linux system programming
+- Process management
 - Process monitoring
-- Linux signals
+- `/proc` filesystem
+- System information
+- Signals
 - Process control
-- Shell/system interaction
-- File-based logging
+- Shell commands
 
 ### Build System
 
 - CMake
 - GNU C++ compiler
 
-### System Concepts
+### Monitoring
 
-- CPU monitoring
-- Memory monitoring
-- Disk monitoring
+- CPU usage
+- Memory usage
+- Disk usage
+- Process status
+- Configurable thresholds
+
+### Reliability
+
 - Failure detection
-- Fault recovery
-- Retry mechanisms
+- Controlled recovery
+- Recovery retry limits
 - Recovery verification
-- Graceful shutdown
+- Manual intervention reporting
+- Event logging
 
 ---
 
-## Development Stages
+# Why Linux-Sentinel-X?
 
-1. Project Introduction
-2. Project Requirements & Development Plan
-3. System Design & Architecture
-4. Implementation
-5. Testing & Validation
+Traditional monitoring systems may detect failures but still require an administrator to restart failed processes.
 
-### Current Status
+Linux-Sentinel-X demonstrates a basic automated supervision approach:
 
-**Stages 1–5 Completed**
+```text
+Monitor
+   ↓
+Detect
+   ↓
+Recover
+   ↓
+Verify
+   ↓
+Log
+   ↓
+Report
+```
 
-- Project introduction completed
-- Requirements documented
-- System design documented
-- Implementation completed
-- Testing and validation completed
-- Failure detection verified
-- Automatic process recovery verified
-- Recovery verification verified
-- Recovery attempt limit verified
-- Manual intervention scenario verified
-- Logging verified
-- Final build verified
+The project therefore demonstrates both **monitoring** and **controlled recovery**, rather than only displaying system statistics.
 
 ---
 
-## Conclusion
+# Project Status
 
-Linux-Sentinel-X demonstrates a complete Linux monitoring and process-supervision workflow rather than simply displaying system statistics.
+**Completed**
 
-The system monitors system resources and a configured process, detects failures, initiates controlled recovery, verifies the recovery result, limits repeated recovery attempts, and records the outcome through structured logging.
+- [x] Project introduction
+- [x] Requirements documented
+- [x] System design documented
+- [x] Implementation completed
+- [x] CPU monitoring
+- [x] Memory monitoring
+- [x] Disk monitoring
+- [x] Process monitoring
+- [x] Failure detection
+- [x] Automatic recovery
+- [x] Recovery verification
+- [x] Recovery retry limit
+- [x] Manual intervention reporting
+- [x] Event logging
+- [x] Testing and validation
+- [x] Final CMake build verified
 
-The project provides a practical demonstration of Linux process management, system monitoring, fault detection, recovery mechanisms, C++ modular design, and Linux system programming concepts.
+---
+
+# Conclusion
+
+Linux-Sentinel-X successfully demonstrates a Linux-based system monitoring and process supervision workflow.
+
+The system monitors important system resources and a configured process, detects process failures, performs controlled recovery attempts, verifies recovery status, records events through the logging mechanism, and reports when manual intervention is required.
+
+The project demonstrates practical concepts in **Linux system programming, C++, process management, failure detection, recovery management, configuration handling, signal handling, and event logging**.
