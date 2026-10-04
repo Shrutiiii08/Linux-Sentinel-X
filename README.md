@@ -643,7 +643,7 @@ Completed:
 - Remote monitoring
 - Database-based monitoring
 - Email/SMS alerting
-- Kernel-level device driver development
+
 
 The project intentionally focuses on a simple, explainable and modular Linux user-space monitoring and process supervision system.
 

@@ -139,7 +139,6 @@ Each module has a specific responsibility, allowing the project to remain modula
 - Remote monitoring
 - Database-based monitoring
 - Email/SMS alerting
-- Kernel-level device driver development
 
 The project intentionally focuses on a simple and explainable Linux monitoring and process supervision system.
 

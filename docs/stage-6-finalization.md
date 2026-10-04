@@ -309,7 +309,6 @@ The final project focuses specifically on Linux user-space system monitoring and
 - Remote monitoring
 - Database-based monitoring
 - Email or SMS alerting
-- Linux kernel-level device driver development
 
 The project intentionally remains a simple, focused and explainable Linux monitoring and process supervision system.
 
