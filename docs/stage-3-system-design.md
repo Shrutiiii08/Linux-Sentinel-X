@@ -2,405 +2,807 @@
 
 ## Stage 3 – System Design & Architecture
 
-### 1. System Overview
+### 1. Stage Overview
 
-Linux-Sentinel-X is a Linux-based system monitoring and process supervision tool developed using C++.
+Stage 3 defines the system architecture, module responsibilities, monitoring workflow, recovery workflow, data structures, class design, and implementation plan for Linux-Sentinel-X.
 
-The system monitors CPU, memory, and disk usage and checks the status of a configured process. It detects abnormal conditions based on configured thresholds, records important events in logs, and can attempt to restart the monitored process when recovery is enabled.
+The design is based on a modular C++ Linux application in which `main.cpp` coordinates system monitoring, process monitoring, failure detection, recovery, configuration, and logging.
 
-The project also includes a basic Linux character device driver written in C to demonstrate communication between user space and kernel space.
+The design was kept simple so that each module has a clear responsibility and the complete system remains easy to maintain, test, and explain.
 
 ---
 
-### 2. System Architecture
+## 2. System Architecture
 
-The system consists of two main parts:
+Linux-Sentinel-X follows a modular Linux user-space architecture.
 
-**User Space**
+The main components are:
 
-The C++ application contains the following modules:
-
-- **SystemInfo** – collects basic Linux system information.
+- **SystemInfo** – collects basic system information.
 - **ResourceMonitor** – monitors CPU, memory, and disk usage.
-- **ProcessMonitor** – checks the configured process.
-- **FailureDetector** – detects threshold violations and process failures.
-- **RecoveryManager** – attempts to restart the monitored process.
-- **Logger** – records important events and actions.
-- **ConfigManager** – reads the monitoring configuration.
+- **ProcessMonitor** – checks whether the configured process is running.
+- **FailureDetector** – checks resource thresholds and detects process failure.
+- **RecoveryManager** – performs controlled recovery attempts.
+- **ConfigManager** – loads monitoring and recovery configuration.
+- **Logger** – records important system, failure, and recovery events.
+- **main.cpp** – coordinates all components and controls the monitoring loop.
 
-**Kernel Space**
-
-The Linux character device driver provides a basic device interface for user-space communication.
+### Architecture Flow
 
 ```text
-                 LINUX ENVIRONMENT
-┌─────────────────────────────────────────────┐
-│                 USER SPACE                  │
-│                                             │
-│  ┌──────────────┐                           │
-│  │ Config File  │                           │
-│  └──────┬───────┘                           │
-│         ↓                                   │
-│  ┌──────────────────────────────────────┐   │
-│  │       C++ Linux-Sentinel-X           │   │
-│  │                                      │   │
-│  │ SystemInfo                           │   │
-│  │ ResourceMonitor                      │   │
-│  │ ProcessMonitor                       │   │
-│  │ FailureDetector                      │   │
-│  │ RecoveryManager                      │   │
-│  │ Logger                               │   │
-│  │ ConfigManager                        │   │
-│  └──────────────┬───────────────────────┘   │
-│                 │                           │
-│          Linux system interfaces            │
-│                 │                           │
-│                 │       Device File          │
-│                 │            │              │
-├─────────────────┼────────────┼──────────────┤
-│                 │ KERNEL     │ SPACE        │
-│                 │            ▼              │
-│                 │  ┌────────────────────┐   │
-│                 │  │ Character Device   │   │
-│                 │  │ Driver             │   │
-│                 │  └────────────────────┘   │
-└─────────────────────────────────────────────┘
+                         Linux-Sentinel-X
+                                |
+                                v
+                         +-------------+
+                         |   main.cpp  |
+                         | Coordinator |
+                         +------+------+
+                                |
+        +-----------------------+-----------------------+
+        |                       |                       |
+        v                       v                       v
++---------------+       +---------------+       +---------------+
+|  ConfigManager|       |  SystemInfo   |       |ResourceMonitor|
++---------------+       +---------------+       +---------------+
+        |                       |                       |
+        |                       |                CPU / Memory /
+        |                       |                   Disk
+        |                       |                       |
+        +-----------------------+-----------------------+
+                                |
+                                v
+                       +-----------------+
+                       | ProcessMonitor  |
+                       +--------+--------+
+                                |
+                                v
+                       +-----------------+
+                       | FailureDetector |
+                       +--------+--------+
+                                |
+                         Failure detected?
+                           /           \
+                         No             Yes
+                         |               |
+                         v               v
+                  Continue cycle       Logger
+                                         |
+                                         v
+                                 Recovery enabled?
+                                   /          \
+                                 No            Yes
+                                 |              |
+                                 v              v
+                              Logger     RecoveryManager
+                                                |
+                                                v
+                                         Recovery attempt
+                                                |
+                                                v
+                                         Verify process
+                                                |
+                                         +------+------+
+                                         |             |
+                                      Success        Failure
+                                         |             |
+                                         v             v
+                                      Logger       Retry/Block
+                                                       |
+                                                       v
+                                              Manual intervention
 ```
 
 ---
 
-### 3. Module Responsibilities
+## 3. Module Responsibilities
 
 | Module | Responsibility |
 |---|---|
-| SystemInfo | Collect basic Linux system information |
-| ResourceMonitor | Monitor CPU, memory, and disk usage |
-| ProcessMonitor | Check whether the configured process is running |
-| FailureDetector | Compare monitored values with configured limits |
-| RecoveryManager | Attempt to restart the configured process |
-| Logger | Record events, failures, and recovery actions |
-| ConfigManager | Read monitoring settings |
-| Device Driver | Provide a basic Linux character-device interface |
-| Driver Interface | Handle user-space communication with the device |
+| `main.cpp` | Coordinates all modules and controls the monitoring cycle |
+| `ConfigManager` | Reads process name, thresholds, monitoring interval, and recovery settings |
+| `SystemInfo` | Collects basic Linux system information |
+| `ResourceMonitor` | Calculates CPU, memory, and disk usage |
+| `ProcessMonitor` | Checks whether the configured process is running |
+| `FailureDetector` | Detects threshold violations and process failures |
+| `RecoveryManager` | Attempts controlled process recovery and verifies the result |
+| `Logger` | Records monitoring, failure, recovery, and shutdown events |
+
+Each component performs a specific task. This separation keeps the application modular and makes individual components easier to understand and maintain.
 
 ---
 
-### 4. Main Data Flow
+## 4. Monitoring Workflow
+
+The application follows a continuous monitoring cycle.
 
 ```text
-Configuration
-      ↓
-Read Settings
-      ↓
-Collect System / Process Information
-      ↓
-Check Configured Conditions
-      ↓
-Failure Detected?
-    /       \
-   No       Yes
-   ↓         ↓
-Continue    Log Failure
-Monitoring     ↓
-          Recovery Enabled?
-             /      \
-            No      Yes
-            ↓        ↓
-          Log    Attempt Recovery
-                    ↓
-                Log Result
-                    ↓
-             Continue Monitoring
+                    Start
+                      |
+                      v
+             Load Configuration
+                      |
+                      v
+              Initialize Modules
+                      |
+                      v
+             Collect System Data
+                      |
+          +-----------+-----------+
+          |                       |
+          v                       v
+   ResourceMonitor          ProcessMonitor
+          |                       |
+          +-----------+-----------+
+                      |
+                      v
+              FailureDetector
+                      |
+                      v
+              Check Conditions
+                      |
+          +-----------+-----------+
+          |                       |
+        Normal                 Abnormal
+          |                       |
+          v                       v
+   Continue Cycle              Log Event
+                                  |
+                                  v
+                          Recovery Required?
+```
+
+The monitoring cycle repeats after the configured monitoring interval.
+
+---
+
+## 5. Resource Monitoring Design
+
+`ResourceMonitor` is responsible for obtaining resource usage information.
+
+The system monitors:
+
+- CPU usage
+- Memory usage
+- Disk usage
+
+The collected values are passed to the main monitoring workflow and checked against the configured thresholds.
+
+```text
+                 Linux System
+                      |
+                      v
+               ResourceMonitor
+                      |
+          +-----------+-----------+
+          |           |           |
+          v           v           v
+         CPU       Memory        Disk
+          |           |           |
+          +-----------+-----------+
+                      |
+                      v
+               FailureDetector
+                      |
+              Compare with limits
+                      |
+             +--------+--------+
+             |                 |
+           Normal           Exceeded
+             |                 |
+             v                 v
+       Continue             Log warning
 ```
 
 ---
 
-### 5. Configuration Flow
+## 6. Process Monitoring Design
 
-The configuration file contains:
+`ProcessMonitor` checks whether the configured process is currently running.
 
-- Process/service name
-- Monitoring interval
+The process name is loaded from:
+
+```text
+config/sentinel.conf
+```
+
+The process monitoring flow is:
+
+```text
+              ConfigManager
+                    |
+                    v
+              Process Name
+                    |
+                    v
+             ProcessMonitor
+                    |
+                    v
+            Is process running?
+               /          \
+             Yes           No
+              |             |
+              v             v
+         Normal state    FailureDetector
+                              |
+                              v
+                           Logger
+```
+
+---
+
+## 7. Failure Detection Design
+
+`FailureDetector` evaluates the information collected by the monitoring components.
+
+It checks:
+
 - CPU threshold
 - Memory threshold
 - Disk threshold
-- Recovery setting
+- Process running status
+
+A resource warning does not automatically mean that the process should be restarted. Process recovery is triggered when the monitored process is detected as failed and recovery is enabled.
+
+```text
+CPU Usage --------\
+Memory Usage ------> FailureDetector
+Disk Usage --------/
+Process Status ----/
+
+             |
+             v
+       Evaluate Conditions
+             |
+       +-----+------+
+       |            |
+    Normal        Failure
+       |            |
+       v            v
+ Continue          Log
+                  Failure
+                     |
+                     v
+              Recovery Decision
+```
+
+---
+
+## 8. Recovery Design
+
+`RecoveryManager` is responsible for controlled recovery of the monitored process.
+
+When a process failure is detected and recovery is enabled:
+
+1. Recovery is initiated.
+2. A recovery attempt is performed.
+3. The process status is checked again.
+4. If the process is running, recovery is considered successful.
+5. If recovery fails, another attempt may be performed if attempts remain.
+6. If the recovery limit is reached, automatic recovery is blocked.
+7. The system reports that manual intervention is required.
+
+### Recovery Flow
+
+```text
+              Process Failure
+                    |
+                    v
+             Recovery Enabled?
+                /          \
+              No            Yes
+              |              |
+              v              v
+        Log warning    Start Recovery
+                             |
+                             v
+                       Attempt Restart
+                             |
+                             v
+                     Verify Process
+                       /          \
+                    Running     Not Running
+                       |             |
+                       v             v
+                   Success       Retry Available?
+                                    /       \
+                                  Yes        No
+                                   |          |
+                                   v          v
+                              Retry       Block Recovery
+                                              |
+                                              v
+                                    Manual Intervention
+```
+
+---
+
+## 9. Recovery State Handling
+
+The application maintains a recovery-blocking state to prevent repeated automatic recovery after the configured recovery limit has been reached.
+
+When recovery fails repeatedly:
+
+```text
+Recovery Attempt
+       |
+       v
+Recovery Failed
+       |
+       v
+Attempts Remaining?
+   /            \
+ Yes             No
+  |               |
+  v               v
+Retry        recoveryBlocked = true
+                  |
+                  v
+       Manual intervention required
+```
+
+When the monitored process is running again, the recovery-blocked state can be reset so that automatic recovery can be enabled again for a future failure.
+
+This prevents unnecessary repeated recovery attempts while allowing the system to recover normally after the process becomes healthy again.
+
+---
+
+## 10. Configuration Design
+
+The configuration is stored in:
+
+```text
+config/sentinel.conf
+```
+
+The configuration contains values such as:
+
+```text
+process_name=testprocess
+monitor_interval=5
+cpu_threshold=80
+memory_threshold=80
+disk_threshold=80
+recovery_enabled=true
+```
 
 The configuration flow is:
 
 ```text
-Configuration File
-        ↓
-ConfigManager
-        ↓
-Monitoring Modules
-        ↓
-FailureDetector
-        ↓
-RecoveryManager
+             sentinel.conf
+                   |
+                   v
+             ConfigManager
+                   |
+       +-----------+-----------+
+       |           |           |
+       v           v           v
+    Process     Resource    Recovery
+    Settings    Thresholds  Settings
+       |           |           |
+       +-----------+-----------+
+                   |
+                   v
+             main.cpp
+                   |
+                   v
+            Monitoring Cycle
+```
+
+Using a configuration file allows monitoring behaviour to be changed without changing the source code.
+
+---
+
+## 11. Logging Design
+
+The `Logger` component records important events during system operation.
+
+Events include:
+
+- Sentinel startup
+- CPU threshold warnings
+- Memory threshold warnings
+- Disk threshold warnings
+- Process failure
+- Recovery initiation
+- Recovery attempts
+- Recovery success
+- Recovery failure
+- Recovery blocked
+- Manual intervention required
+- Recovery state reset
+- Sentinel shutdown
+
+The logging flow is:
+
+```text
+Monitoring
+    |
+    v
+Failure Detection
+    |
+    v
+Recovery
+    |
+    v
+Logger
+    |
+    v
+sentinel.log
+```
+
+The log provides a record of the system's behaviour and is also used during testing and validation.
+
+---
+
+## 12. System Information Design
+
+`SystemInfo` provides basic information about the Linux environment.
+
+The information can include:
+
+- CPU information
+- Memory information
+- Kernel/system information
+
+This information is displayed when Linux-Sentinel-X starts and helps provide the operating environment in which the monitoring system is running.
+
+---
+
+## 13. Data Structures and Configuration Data
+
+The project uses simple structures and class members to store configuration and monitoring information.
+
+### Configuration
+
+```text
+Config
+├── processName
+├── monitorInterval
+├── cpuThreshold
+├── memoryThreshold
+├── diskThreshold
+├── recoveryEnabled
+├── maxRecoveryAttempts
+└── retryDelay
+```
+
+### Resource Values
+
+```text
+Resource Data
+├── CPU Usage
+├── Memory Usage
+└── Disk Usage
+```
+
+### Process State
+
+The monitored process has two primary observed states:
+
+```text
+Running
+Not Running
+```
+
+### Recovery State
+
+The recovery mechanism maintains whether automatic recovery is currently blocked:
+
+```text
+Recovery Allowed
+       |
+       v
+Recovery Attempt
+       |
+       +----> Successful
+       |
+       +----> Failed
+                 |
+                 v
+          Attempts Exhausted
+                 |
+                 v
+          Recovery Blocked
+                 |
+                 v
+      Manual Intervention Required
 ```
 
 ---
 
-### 6. Process Recovery Flow
+## 14. Class Design
 
-When the configured process stops:
+The main classes are organized according to their responsibilities.
 
 ```text
-ProcessMonitor
-      ↓
-Process Not Running
-      ↓
-FailureDetector
-      ↓
-Recovery Enabled?
-    /        \
-   No        Yes
-   ↓          ↓
- Log      RecoveryManager
- Failure       ↓
-          Attempt Restart
-               ↓
-          Check Result
-               ↓
-           Log Result
+                    +-------------+
+                    | ConfigManager|
+                    +------+------+
+                           |
+                           v
+                    +-------------+
+                    |   main.cpp  |
+                    +------+------+
+                           |
+       +-------------------+-------------------+
+       |                   |                   |
+       v                   v                   v
++--------------+    +--------------+    +--------------+
+| SystemInfo   |    |ResourceMonitor|   |ProcessMonitor|
++--------------+    +--------------+    +------+-------+
+                                             |
+                                             v
+                                    +-----------------+
+                                    | FailureDetector |
+                                    +--------+--------+
+                                             |
+                                             v
+                                    +-----------------+
+                                    | RecoveryManager |
+                                    +--------+--------+
+                                             |
+                                             v
+                                         +-------+
+                                         | Logger|
+                                         +-------+
 ```
+
+### Class Responsibilities
+
+**ConfigManager**
+- Loads configuration.
+- Provides configuration values to the application.
+
+**SystemInfo**
+- Collects system information.
+
+**ResourceMonitor**
+- Collects CPU, memory, and disk usage.
+
+**ProcessMonitor**
+- Checks the monitored process.
+
+**FailureDetector**
+- Checks thresholds.
+- Detects process failure.
+
+**RecoveryManager**
+- Performs recovery attempts.
+- Verifies recovery.
+- Handles retry limits.
+- Blocks further automatic recovery when required.
+
+**Logger**
+- Records system and recovery events.
 
 ---
 
-### 7. Character Device Communication
+## 15. Sequence Diagram
 
-The character driver provides a separate demonstration of user-space and kernel-space communication.
+The main application coordinates the interaction between the modules.
 
 ```text
-C++ Application
-      ↓
-Device File
-      ↓
-Linux Character Driver
-      ↓
-Kernel Space
+main.cpp        ResourceMonitor   ProcessMonitor   FailureDetector   RecoveryManager   Logger
+   |                   |                |                 |                |              |
+   |----collect------->|                |                 |                |              |
+   |<---resource data--|                |                 |                |              |
+   |                   |                |                 |                |              |
+   |--------------------------check process-------------> |                |              |
+   |<-------------------------process status------------ |                |              |
+   |                   |                |                 |                |              |
+   |--------------------------------evaluate------------>|                |              |
+   |                   |                |                 |                |              |
+   |                   |                |                 |                |              |
+   |                   |                |          failure detected?      |              |
+   |                   |                |                 |                |              |
+   |                   |                |                 |----log---------------------->|
+   |                   |                |                 |                |              |
+   |                   |                |                 |----recover---->|              |
+   |                   |                |                 |                |              |
+   |                   |                |                 |                |--restart---->|
+   |                   |                |                 |                |              |
+   |                   |                |                 |<--result-------|              |
+   |                   |                |                 |----log---------------------->|
+   |                   |                |                 |                |              |
+   |<---------------------------continue monitoring--------------------------------------|
 ```
 
-The driver will implement the basic operations required for a character device:
-
-- Initialization
-- Open
-- Read
-- Write
-- Cleanup
+This sequence reflects the actual design in which `main.cpp` coordinates the monitoring, detection, recovery, and logging components.
 
 ---
 
-### 8. Data Structures
+## 16. State Machine
 
-The application will use simple structures based on the actual requirements.
-
-**Configuration data:**
+The monitored process and recovery workflow can be represented using the following states:
 
 ```text
-Configuration
-├── Process name
-├── Monitoring interval
-├── CPU threshold
-├── Memory threshold
-├── Disk threshold
-└── Recovery enabled
+                  +-----------+
+                  |  STARTING |
+                  +-----+-----+
+                        |
+                        v
+                  +-----------+
+                  |  RUNNING  |
+                  +-----+-----+
+                        |
+                  Process Stops
+                        |
+                        v
+                  +-----------+
+                  |  FAILED   |
+                  +-----+-----+
+                        |
+                 Recovery Enabled
+                        |
+                        v
+                  +-----------+
+                  | RECOVERING|
+                  +-----+-----+
+                        |
+                 +------+------+
+                 |             |
+              Success        Failure
+                 |             |
+                 v             v
+            +---------+   Attempts Remain?
+            | RUNNING |       /      \
+            +---------+     Yes       No
+                              |         |
+                              v         v
+                           Retry    RECOVERY
+                                      BLOCKED
+                                        |
+                                        v
+                              Manual Intervention
 ```
 
-**Resource data:**
-
-```text
-ResourceData
-├── CPU usage
-├── Memory usage
-└── Disk usage
-```
-
-Process-monitoring data will contain the information required to identify and determine the state of the configured process.
+This state model represents the controlled recovery behaviour implemented in the project.
 
 ---
 
-### 9. Class Design
+## 17. Error and Failure Handling
 
-The C++ application will separate the major responsibilities into classes:
+The system handles several possible operational conditions:
 
-```text
-ConfigManager
-      ↓
-ResourceMonitor ─────┐
-                     ↓
-ProcessMonitor → FailureDetector
-                     ↓
-              RecoveryManager
-                     ↓
-                   Logger
-```
+- Configuration loading failure
+- Monitored process not running
+- CPU threshold exceeded
+- Memory threshold exceeded
+- Disk threshold exceeded
+- Recovery attempt failure
+- Recovery limit reached
+- Recovery blocked
+- Manual intervention required
+- Program termination through `SIGINT` or `SIGTERM`
 
-`SystemInfo` will provide basic system information. A separate driver interface will handle communication with the character device.
-
----
-
-### 10. Sequence Diagram
-
-The main failure and recovery sequence is:
-
-```text
-ProcessMonitor    FailureDetector    RecoveryManager    Logger
-      │                  │                  │              │
-      │ Check Process    │                  │              │
-      ├─────────────────>│                  │              │
-      │                  │                  │              │
-      │ Process Failed   │                  │              │
-      ├─────────────────>│                  │              │
-      │                  │ Detect Failure   │              │
-      │                  ├────────────────────────────────>│
-      │                  │                  │              │
-      │                  │ Recovery Request │              │
-      │                  ├─────────────────>│              │
-      │                  │                  │              │
-      │                  │                  │ Restart      │
-      │                  │                  │ Process      │
-      │                  │                  │              │
-      │                  │ Recovery Result  │              │
-      │                  │<─────────────────┤              │
-      │                  │                  │              │
-      │                  ├────────────────────────────────>│
-```
+The recovery system is intentionally limited so that repeated failures do not create an unlimited recovery loop.
 
 ---
 
-### 11. Process State Machine
+## 18. Safe Shutdown Design
 
-The monitored process will have the following states:
+Linux-Sentinel-X handles `SIGINT` and `SIGTERM`.
+
+When one of these signals is received:
 
 ```text
-       ┌───────────┐
-       │ STARTING  │
-       └─────┬─────┘
-             ↓
-       ┌───────────┐
-       │  RUNNING  │
-       └─────┬─────┘
-             │
-        Process Stops
-             ↓
-       ┌───────────┐
-       │  FAILED   │
-       └─────┬─────┘
-             │
-      Recovery Enabled
-             ↓
-       ┌───────────┐
-       │ RECOVERING│
-       └─────┬─────┘
-          ┌──┴──┐
-       Success Failure
-          ↓      ↓
-      RUNNING  FAILED
+SIGINT / SIGTERM
+       |
+       v
+Signal Handler
+       |
+       v
+Stop Monitoring Loop
+       |
+       v
+Log Shutdown Event
+       |
+       v
+Controlled Program Exit
 ```
+
+This allows the application to terminate cleanly when the user stops it with `Ctrl+C` or when a termination signal is received.
 
 ---
 
-### 12. Proposed Project Structure
+## 19. Project Structure
+
+The project is organized into source code, headers, configuration, documentation, testing, and logs.
 
 ```text
-linux-sentinel-x/
-│
-├── README.md
-├── CMakeLists.txt
-│
-├── docs/
-│   ├── stage-1-project-introduction.md
-│   ├── stage-2-project-requirements.md
-│   └── stage-3-system-design.md
-│
-├── include/
-│   ├── config_manager.h
-│   ├── system_info.h
-│   ├── resource_monitor.h
-│   ├── process_monitor.h
-│   ├── failure_detector.h
-│   ├── recovery_manager.h
-│   └── logger.h
-│
-├── src/
-│   ├── main.cpp
-│   ├── config_manager.cpp
-│   ├── system_info.cpp
-│   ├── resource_monitor.cpp
-│   ├── process_monitor.cpp
-│   ├── failure_detector.cpp
-│   ├── recovery_manager.cpp
-│   └── logger.cpp
-│
-├── driver/
-│   └── linux_sentinel_driver.c
+Linux-Sentinel-X/
 │
 ├── config/
 │   └── sentinel.conf
 │
-└── logs/
+├── docs/
+│   ├── stage-1-project-introduction.md
+│   ├── stage-2-project-requirements.md
+│   ├── stage-3-system-design.md
+│   ├── stage-4-implementation.md
+│   ├── stage-5-testing-validation.md
+│   └── stage-6-final-implementation.md
+│
+├── include/
+│   ├── ConfigManager.h
+│   ├── SystemInfo.h
+│   ├── ResourceMonitor.h
+│   ├── ProcessMonitor.h
+│   ├── FailureDetector.h
+│   ├── RecoveryManager.h
+│   └── Logger.h
+│
+├── src/
+│   ├── ConfigManager.cpp
+│   ├── SystemInfo.cpp
+│   ├── ResourceMonitor.cpp
+│   ├── ProcessMonitor.cpp
+│   ├── FailureDetector.cpp
+│   ├── RecoveryManager.cpp
+│   ├── Logger.cpp
+│   └── main.cpp
+│
+├── tests/
+│   └── test_failure.cpp
+│
+├── logs/
+│   └── sentinel.log
+│
+├── CMakeLists.txt
+└── README.md
 ```
 
 ---
 
-### 13. Implementation Plan
+## 20. Development and Git Strategy
 
-The project will be implemented in the following order:
+The project is maintained using Git and GitHub.
 
-1. Set up the C++ project and CMake build system.
-2. Implement configuration handling.
-3. Implement system information collection.
-4. Implement CPU, memory, and disk monitoring.
-5. Implement process monitoring.
-6. Implement failure detection.
-7. Implement logging.
-8. Implement controlled process recovery.
-9. Implement the Linux character device driver.
-10. Implement user-space communication with the driver.
-11. Integrate all modules.
-12. Test the complete system.
+The `main` branch contains the current stable project version.
 
----
+Development changes are recorded through meaningful commits covering implementation, fixes, testing, and documentation.
 
-### 14. Git Strategy
-
-The project will use the `main` branch for the stable project version.
-
-Major milestones will be recorded using meaningful commits, for example:
+Examples include:
 
 ```text
-feat: implement configuration manager
-feat: implement system information
-feat: implement resource monitoring
-feat: implement process monitoring
-feat: implement failure detection
-feat: implement recovery manager
-feat: implement logging
-feat: add character device driver
-test: verify monitoring and recovery
 docs: update project documentation
+feat: implement monitoring functionality
+feat: implement process recovery
+fix: improve recovery handling
+test: validate failure and recovery workflow
+docs: update README
 ```
+
+The GitHub repository is used to maintain the source code, documentation, project history, and final submission.
 
 ---
 
-### 15. Stage 3 Completion
+## 21. Implementation Plan
 
-Stage 3 is complete when the following are defined:
+The implementation follows the architecture defined in this stage:
 
-- System architecture
-- Module responsibilities
-- Main data flow
-- Configuration flow
-- Recovery flow
-- Driver communication
-- Required data structures
-- Class diagram
-- Sequence diagram
-- State machine diagram
-- Project structure
-- Implementation order
-- Git strategy
+1. Configure the project using CMake.
+2. Implement configuration loading.
+3. Implement system information collection.
+4. Implement resource monitoring.
+5. Implement process monitoring.
+6. Implement failure detection.
+7. Implement event logging.
+8. Implement controlled process recovery.
+9. Add recovery attempt limits.
+10. Add recovery blocking and manual intervention handling.
+11. Add signal handling and controlled shutdown.
+12. Integrate all modules through `main.cpp`.
+13. Test the complete monitoring and recovery workflow.
+14. Fix identified issues and improve reliability.
+15. Complete final documentation.
 
+---
 
+## 22. Stage 3 Outcome
+
+Stage 3 established the technical design of Linux-Sentinel-X before and during implementation.
+
+The system architecture, module responsibilities, monitoring flow, failure detection flow, recovery mechanism, configuration flow, logging design, data structures, class responsibilities, sequence flow, state machine, error handling, safe shutdown, project structure, and Git strategy were defined.
+
+This design provided the foundation for the implementation and testing work completed in the following stages.
