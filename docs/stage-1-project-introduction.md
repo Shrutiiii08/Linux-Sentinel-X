@@ -10,116 +10,117 @@
 
 ## 2. Project Idea
 
-Linux-Sentinel-X is an individual Linux-based system monitoring and process supervision project.
+Linux-Sentinel-X is an individual Linux-based system monitoring and process supervision project developed using C++ and Linux system programming concepts.
 
-The system continuously monitors selected Linux system resources and processes. It detects abnormal conditions, identifies process failures, and performs controlled recovery actions when recovery is enabled.
+The system continuously monitors selected system resources and a configured Linux process. It detects abnormal conditions such as process failure and configured resource threshold violations, records important events, and performs controlled recovery actions when automatic recovery is enabled.
 
-The project combines C++ programming, Linux system programming, process management, configuration handling, logging, and fault-recovery concepts.
+The project is designed to demonstrate practical Linux system programming, process management, monitoring, failure detection, recovery, configuration handling, logging, and signal handling.
 
 ---
 
 ## 3. Problem Statement
 
-Linux systems run multiple processes and services continuously. A process may stop unexpectedly or system resources may cross defined usage limits.
+Linux systems run multiple processes and services continuously. A process may terminate unexpectedly or system resources may reach configured usage limits.
 
-If these conditions are not detected, they may affect the reliability and normal operation of the system. Manually checking the system continuously is also not practical.
+Manually checking these conditions continuously is difficult and inefficient. A simple monitoring and supervision mechanism is therefore useful for detecting failures and providing an appropriate response.
 
-Linux-Sentinel-X aims to provide a simple monitoring and supervision mechanism that can detect selected abnormal conditions, record the events, and attempt controlled recovery when a monitored process fails.
+Linux-Sentinel-X addresses this problem by continuously monitoring selected system conditions, detecting failures, recording events, and attempting controlled recovery when configured.
+
+If automatic recovery cannot successfully restore the monitored process after the configured number of attempts, the system blocks further automatic recovery and reports that manual intervention is required.
 
 ---
 
-## 4. Objective
+## 4. Objectives
 
 The main objectives of Linux-Sentinel-X are:
 
-- Monitor important Linux system resources such as CPU, memory, and disk usage.
+- Monitor CPU, memory, and disk usage.
 - Monitor a selected Linux process.
 - Detect when the monitored process is no longer running.
 - Detect configured resource threshold violations.
-- Perform controlled recovery when a monitored process fails.
-- Verify whether the recovery was successful.
+- Perform controlled automatic recovery when applicable.
 - Limit the number of automatic recovery attempts.
-- Block repeated automatic recovery when the recovery limit is reached.
-- Indicate when manual intervention is required.
-- Maintain logs of important monitoring, failure, recovery, and shutdown events.
-- Demonstrate Linux system programming and C++ object-oriented programming concepts.
+- Detect unsuccessful recovery and require manual intervention.
+- Maintain timestamped logs of important events.
+- Read monitoring and recovery settings from a configuration file.
+- Demonstrate Linux process management and system programming.
+- Demonstrate C++ object-oriented programming in a Linux environment.
+- Provide a simple and understandable system-monitoring architecture.
 
 ---
 
 ## 5. Project Scope
 
-The project focuses on:
+The project focuses on the following areas:
 
 - Linux system monitoring
 - CPU, memory, and disk monitoring
 - Process monitoring
 - Process failure detection
-- Controlled process recovery
-- Recovery verification
+- Process recovery
 - Recovery attempt limits
 - Manual intervention handling
 - Event logging
 - Configuration management
-- Linux process and system interfaces
-- Signal handling
+- Linux system interfaces such as `/proc`
+- Linux process and signal management
 - C++ programming
 - CMake-based project building
+- Git-based version control
 
-The project is implemented using C++ on a Linux environment.
+The project is implemented using C++ and Linux system programming facilities and is intended to run in a Linux environment.
 
 ---
 
 ## 6. Expected Outcome
 
-The expected outcome is a working Linux-based monitoring and supervision system capable of:
+The expected outcome is a working Linux-based monitoring and process supervision system that can:
 
-1. Collecting selected system resource information.
-2. Monitoring a configured Linux process.
-3. Detecting configured resource threshold violations.
-4. Detecting process failure.
-5. Recording important events in log files.
-6. Attempting controlled process recovery.
-7. Verifying whether the recovery was successful.
-8. Limiting repeated recovery attempts when recovery continues to fail.
-9. Blocking automatic recovery after the configured recovery limit is reached.
-10. Reporting that manual intervention is required when automatic recovery cannot restore the process.
-11. Performing a controlled shutdown when the user sends a termination signal.
+1. Collect selected system resource information.
+2. Monitor a configured Linux process.
+3. Detect process failures and configured threshold violations.
+4. Record monitoring and recovery events with timestamps.
+5. Attempt controlled recovery when enabled.
+6. Limit repeated recovery attempts.
+7. Report when automatic recovery fails and manual intervention is required.
+8. Stop monitoring safely when the program receives a termination signal.
 
 ---
 
 ## 7. Application
 
-Linux-Sentinel-X demonstrates concepts that can be useful in:
+The concepts demonstrated by Linux-Sentinel-X can be useful in:
 
 - Linux system administration
-- Linux system monitoring
 - Process supervision
-- Embedded Linux and system-level software
-- Fault detection and recovery
-- Reliability-focused software
-- Linux system programming
+- System monitoring
+- Embedded Linux applications
+- Reliability and fault-recovery systems
+- System-level software development
+- Basic infrastructure monitoring
 
-The project can serve as a basic foundation for a larger monitoring or process-supervision system.
+The project serves as a practical demonstration of how a Linux application can monitor system conditions, detect failures, and respond to them in a controlled manner.
 
 ---
 
-## 8. Technologies
+## 8. Technologies and Tools
 
-| **Component** | **Technology** |
+| Component | Technology |
 |---|---|
 | Programming Language | C++ |
 | Operating System | Linux |
+| System Interfaces | Linux `/proc`, process and signal interfaces |
 | Build System | CMake |
 | Compiler | GNU C++ |
 | Version Control | Git / GitHub |
 | Documentation | Markdown |
-| System Interfaces | Linux `/proc`, process and system interfaces |
-| Logging | File-based event logging |
+| Configuration | Configuration file |
+| Logging | Timestamped application logs |
 
 ---
 
 ## 9. Stage 1 Outcome
 
-At the end of Stage 1, the project idea, problem statement, objectives, scope, expected outcome, and application area were defined.
+At the end of Stage 1, the project idea, problem statement, objectives, scope, expected outcome, applications, and technology requirements were defined.
 
-The project was planned as a Linux-based monitoring and process supervision system with a focus on failure detection, controlled recovery, logging, and reliability.
+The project was then taken forward to the requirements, system design, implementation, and testing stages.
