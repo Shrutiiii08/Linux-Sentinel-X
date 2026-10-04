@@ -2,37 +2,46 @@
 
 #include <fstream>
 #include <ctime>
+#include <iomanip>
+#include <sstream>
 
-bool Logger::logEvent(const std::string& event,
-                      const std::string& status,
+std::string Logger::getTimestamp()
+{
+    std::time_t currentTime = std::time(nullptr);
+    std::tm localTime{};
+
+    localtime_r(&currentTime, &localTime);
+
+    std::ostringstream timestamp;
+
+    timestamp << std::put_time(&localTime, "%Y-%m-%d %H:%M:%S");
+
+    return timestamp.str();
+}
+
+bool Logger::logEvent(const std::string& level,
+                      const std::string& event,
                       const std::string& action)
 {
-    std::ofstream logFile("logs/sentinel.log", std::ios::app);
+    std::ofstream logFile(
+        "logs/sentinel.log",
+        std::ios::app
+    );
 
     if (!logFile.is_open())
     {
         return false;
     }
 
-    std::time_t currentTime = std::time(nullptr);
-
-    char* timeString = std::ctime(&currentTime);
-
-    if (timeString != nullptr)
-    {
-        std::string timestamp(timeString);
-
-        if (!timestamp.empty() && timestamp.back() == '\n')
-        {
-            timestamp.pop_back();
-        }
-
-        logFile << "[" << timestamp << "] "
-                << "Event: " << event
-                << " | Status: " << status
-                << " | Action: " << action
-                << '\n';
-    }
+    logFile << "["
+            << getTimestamp()
+            << "] ["
+            << level
+            << "] "
+            << event
+            << " | "
+            << action
+            << '\n';
 
     logFile.close();
 
