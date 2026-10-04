@@ -5,9 +5,12 @@
 
 class Logger {
 public:
-    bool logEvent(const std::string& event,
-                  const std::string& status,
+    bool logEvent(const std::string& level,
+                  const std::string& event,
                   const std::string& action);
+
+private:
+    std::string getTimestamp();
 };
 
 #endif
