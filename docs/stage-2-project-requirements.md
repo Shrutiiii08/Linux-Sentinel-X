@@ -100,7 +100,7 @@ The application handles termination signals and shuts down the monitoring proces
 
 | Module | Purpose |
 |---|---|
-| `SystemMonitor` | Collect CPU, memory and disk usage |
+| `ResourceMonitor` | Collect CPU, memory and disk usage |
 | `ProcessMonitor` | Check the configured process |
 | `FailureDetector` | Detect process failures and threshold violations |
 | `RecoveryManager` | Perform and control process recovery |
